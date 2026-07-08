@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -51,6 +52,25 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
 
+  // Swagger at /api (before global prefix — see D4 in commit tracker)
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('UniSouk OpenCart Integration API')
+    .setDescription('Backend API for UniSouk OpenCart assignment')
+    .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        in: 'header',
+      },
+      'access-token',
+    )
+    .build();
+
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('api', app, document);
+
   // Global API Prefix
   app.setGlobalPrefix(`${apiPrefix}/${apiVersion}`);
 
@@ -58,6 +78,7 @@ async function bootstrap() {
 
   logger.log(`🚀 Application is running on: http://localhost:${port}`);
   logger.log(`📝 Environment: ${nodeEnv}`);
+  logger.log(`📚 Swagger UI: http://localhost:${port}/api`);
   logger.log(`🔗 API Prefix: /${apiPrefix}/${apiVersion}`);
   logger.log(`🌐 CORS Origins: ${corsOrigin.join(', ')}`);
 }

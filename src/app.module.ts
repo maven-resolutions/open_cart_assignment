@@ -18,6 +18,7 @@ import { WinstonModule } from 'nest-winston';
 import { createWinstonConfig } from './common/logger/winston.config';
 import * as winston from 'winston';
 import { DatabaseModule } from './database/database.module';
+import { HealthModule } from './common/health/health.module';
 
 const getValidationConstraints = (
   err: ValidationError,
@@ -53,6 +54,7 @@ const getValidationConstraints = (
     }),
     DatabaseModule,
     AuthModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [
