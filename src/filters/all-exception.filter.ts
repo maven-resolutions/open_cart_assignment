@@ -6,7 +6,6 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { NormalException } from '../exception/normal.exception';
 import { Response } from 'express';
 import {
   CheckViolationError,
@@ -24,6 +23,20 @@ import { CustomValidationException } from '../exception/validation.exception';
 @Catch()
 export class AllExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionFilter.name);
+
+  private sendError(
+    response: Response,
+    statusCode: number,
+    message: string,
+    data: unknown = null,
+  ) {
+    return response.status(statusCode).json({
+      statusCode,
+      status: false,
+      data,
+      message,
+    });
+  }
 
   catch(exception: HttpException, host: ArgumentsHost) {
     this.logger.error(exception.stack);
@@ -54,12 +67,7 @@ export class AllExceptionFilter implements ExceptionFilter {
       statusCode = exception.getStatus();
       message = exception.message;
       data = exception.validationErrors;
-      return response.status(statusCode).json({
-        statusCode,
-        status: false,
-        data,
-        message,
-      });
+      return this.sendError(response, statusCode, message, data);
     }
 
     if (exception instanceof ValidationError) {
@@ -68,103 +76,95 @@ export class AllExceptionFilter implements ExceptionFilter {
           const errorMsg = isProduction
             ? 'Model validation error'
             : exception.message;
-          return response
-            .status(HttpStatus.BAD_REQUEST)
-            .send(NormalException.VALIDATION_ERROR(errorMsg).toJSON());
+          return this.sendError(
+            response,
+            HttpStatus.BAD_REQUEST,
+            errorMsg,
+          );
         }
         case 'RelationExpression': {
           const errorMsg = isProduction
             ? 'Relation expression error'
             : exception.message;
-          return response
-            .status(HttpStatus.BAD_REQUEST)
-            .send(NormalException.VALIDATION_ERROR(errorMsg).toJSON());
+          return this.sendError(
+            response,
+            HttpStatus.BAD_REQUEST,
+            errorMsg,
+          );
         }
         case 'UnallowedRelation': {
           const errorMsg = isProduction
             ? 'Unallowed relation error'
             : exception.message;
-          return response
-            .status(HttpStatus.BAD_REQUEST)
-            .send(NormalException.VALIDATION_ERROR(errorMsg).toJSON());
+          return this.sendError(
+            response,
+            HttpStatus.BAD_REQUEST,
+            errorMsg,
+          );
         }
         case 'InvalidGraph': {
           const errorMsg = isProduction
             ? 'Invalid graph error'
             : exception.message;
-          return response
-            .status(HttpStatus.BAD_REQUEST)
-            .send(NormalException.VALIDATION_ERROR(errorMsg).toJSON());
+          return this.sendError(
+            response,
+            HttpStatus.BAD_REQUEST,
+            errorMsg,
+          );
         }
         default: {
           const errorMsg = isProduction
             ? 'Unknown validation error'
             : exception.message;
-          return response
-            .status(HttpStatus.BAD_REQUEST)
-            .send(NormalException.VALIDATION_ERROR(errorMsg).toJSON());
+          return this.sendError(
+            response,
+            HttpStatus.BAD_REQUEST,
+            errorMsg,
+          );
         }
       }
     } else if (exception instanceof NotNullViolationError) {
       const errorMsg = isProduction
         ? 'Not null violation error'
         : exception.message;
-      return response
-        .status(HttpStatus.BAD_REQUEST)
-        .send(NormalException.UNEXPECTED(errorMsg).toJSON());
+      return this.sendError(response, HttpStatus.BAD_REQUEST, errorMsg);
     } else if (exception instanceof UniqueViolationError) {
       const errorMsg = isProduction
         ? 'Unique violation error'
         : exception.message;
-      return response
-        .status(HttpStatus.CONFLICT)
-        .send(NormalException.UNEXPECTED(errorMsg).toJSON());
+      return this.sendError(response, HttpStatus.CONFLICT, errorMsg);
     } else if (exception instanceof ConstraintViolationError) {
       const errorMsg = isProduction
         ? 'Constraint violation error'
         : exception.message;
-      return response
-        .status(HttpStatus.BAD_REQUEST)
-        .send(NormalException.VALIDATION_ERROR(errorMsg).toJSON());
+      return this.sendError(response, HttpStatus.BAD_REQUEST, errorMsg);
     } else if (exception instanceof DBError) {
       const errorMsg = isProduction
         ? 'Some errors occurred with database'
         : exception.message;
-      return response
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .send(NormalException.UNEXPECTED(errorMsg).toJSON());
+      return this.sendError(
+        response,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        errorMsg,
+      );
     } else if (exception instanceof DataError) {
       const errorMsg = isProduction ? 'Bad data provided' : exception.message;
-      return response
-        .status(HttpStatus.BAD_REQUEST)
-        .send(NormalException.UNEXPECTED(errorMsg).toJSON());
+      return this.sendError(response, HttpStatus.BAD_REQUEST, errorMsg);
     } else if (exception instanceof CheckViolationError) {
       const errorMsg = isProduction
         ? 'Check violation error'
         : exception.message;
-      return response
-        .status(HttpStatus.BAD_REQUEST)
-        .send(NormalException.UNEXPECTED(errorMsg).toJSON());
+      return this.sendError(response, HttpStatus.BAD_REQUEST, errorMsg);
     } else if (exception instanceof ForeignKeyViolationError) {
       const errorMsg = isProduction
         ? 'Foreign key violation error'
         : exception.message;
-      return response
-        .status(HttpStatus.BAD_REQUEST)
-        .send(NormalException.UNEXPECTED(errorMsg).toJSON());
+      return this.sendError(response, HttpStatus.BAD_REQUEST, errorMsg);
     } else if (exception instanceof NotFoundError) {
       const errorMsg = isProduction ? 'Not found error' : exception.message;
-      return response
-        .status(HttpStatus.NOT_FOUND)
-        .send(NormalException.UNEXPECTED(errorMsg).toJSON());
+      return this.sendError(response, HttpStatus.NOT_FOUND, errorMsg);
     }
 
-    response.status(statusCode).json({
-      statusCode,
-      status: false,
-      data: null,
-      message,
-    });
-    return;
+    return this.sendError(response, statusCode, message);
   }
 }
