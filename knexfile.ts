@@ -12,7 +12,7 @@ const config: { [key: string]: Knex.Config } = {
       port: parseInt(process.env.DATABASE_PORT || '5432', 10),
       user: process.env.DATABASE_USER || 'postgres',
       password: process.env.DATABASE_PASSWORD || '',
-      database: process.env.DATABASE_NAME || 'karnok_db',
+      database: process.env.DATABASE_NAME || 'open_cart_assignment',
     },
     pool: {
       min: parseInt(process.env.DATABASE_POOL_MIN || '2', 10),
@@ -37,7 +37,7 @@ const config: { [key: string]: Knex.Config } = {
       port: parseInt(process.env.DATABASE_PORT || '5432', 10),
       user: process.env.DATABASE_USER || 'postgres',
       password: process.env.DATABASE_PASSWORD || '',
-      database: process.env.DATABASE_NAME || 'karnok_db',
+      database: process.env.DATABASE_NAME || 'open_cart_assignment',
       ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
     },
     pool: {
