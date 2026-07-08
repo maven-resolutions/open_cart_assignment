@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import configuration from './config/configuration';
+import { validateEnv } from './config/env.validation';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { AllExceptionFilter } from './filters/all-exception.filter';
 import { NormalExceptionFilter } from './filters/normal-exception.filter';
@@ -35,6 +36,7 @@ const getValidationConstraints = (
       isGlobal: true,
       envFilePath: '.env',
       load: [configuration],
+      validate: validateEnv,
     }),
     WinstonModule.forRootAsync({
       imports: [ConfigModule],
