@@ -71,6 +71,8 @@ const getValidationConstraints = (
       provide: APP_PIPE,
       useFactory: () =>
         new ValidationPipe({
+          whitelist: true,
+          forbidNonWhitelisted: true,
           transform: true,
           transformOptions: {
             enableImplicitConversion: true,
