@@ -19,6 +19,7 @@ import { createWinstonConfig } from './common/logger/winston.config';
 import * as winston from 'winston';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './common/health/health.module';
+import { OpenCartModule } from './integrations/opencart/opencart.module';
 
 const getValidationConstraints = (
   err: ValidationError,
@@ -55,6 +56,7 @@ const getValidationConstraints = (
     DatabaseModule,
     AuthModule,
     HealthModule,
+    OpenCartModule,
   ],
   controllers: [AppController],
   providers: [
