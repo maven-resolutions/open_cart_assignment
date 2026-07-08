@@ -1,0 +1,121 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: open_cart_assignment
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d open_cart_assignment']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  opencart-db:
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: opencart_root
+      MYSQL_DATABASE: opencart
+      MYSQL_USER: opencart
+      MYSQL_PASSWORD: opencart
+    volumes:
+      - opencart_db_data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'mysqladmin',
+          'ping',
+          '-h',
+          'localhost',
+          '-uopencart',
+          '-popencart',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  opencart:
+    image: aamservices/opencart:3.0.3.6
+    ports:
+      - '8081:80'
+    depends_on:
+      opencart-db:
+        condition: service_healthy
+    environment:
+      OPENCART_HOSTNAME: opencart-db
+      OPENCART_USERNAME: opencart
+      OPENCART_PASSWORD: opencart
+      OPENCART_DATABASE: opencart
+    healthcheck:
+      test: ['CMD-SHELL', 'pgrep apache2 > /dev/null || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  app:
+    build:
+      context: .
+      target: production
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env.example
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/open_cart_assignment
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_NAME: open_cart_assignment
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      OPENCART_BASE_URL: http://opencart
+      OPENCART_API_USERNAME: ${OPENCART_API_USERNAME:-unisouk-api}
+      OPENCART_API_KEY: ${OPENCART_API_KEY:-change-me-after-install}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      opencart:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      target: production
+    entrypoint: ['sleep', 'infinity']
+    env_file:
+      - .env.example
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/open_cart_assignment
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      OPENCART_BASE_URL: http://opencart
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  opencart_db_data:
