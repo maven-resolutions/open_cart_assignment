@@ -1,10 +1,14 @@
 // src/core/base.model.ts
-import { Model } from 'objection';
+import { Model, snakeCaseMappers } from 'objection';
 
 export class BaseModel extends Model {
   id!: number;
   createdAt!: string;
   updatedAt!: string;
+
+  static get columnNameMappers() {
+    return snakeCaseMappers();
+  }
 
   static get idColumn() {
     return 'id';
