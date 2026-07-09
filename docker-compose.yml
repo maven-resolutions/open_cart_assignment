@@ -117,19 +117,28 @@ services:
     build:
       context: .
       target: production
-    entrypoint: ['sleep', 'infinity']
+    command: ['node', 'dist/src/worker.js']
     env_file:
-      - .env.example
+      - .env
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/open_cart_assignment
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_NAME: open_cart_assignment
       REDIS_HOST: redis
       REDIS_PORT: 6379
       OPENCART_BASE_URL: http://opencart
+      OPENCART_API_USERNAME: ${OPENCART_API_USERNAME:-unisouk-api}
+      OPENCART_API_KEY: ${OPENCART_API_KEY:-change-me-after-install}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      opencart:
         condition: service_healthy
 
 volumes:
