@@ -1,0 +1,24 @@
+# Production overrides for AlmaLinux / VPS deployment.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Host port 3000 is often taken on shared VPS (e.g. existing Node/Next apps).
+# APP_HOST_PORT maps host → container 3000. Default: 3002.
+#
+# Set in .env:
+#   APP_HOST_PORT=3002
+#   OPENCART_PUBLIC_URL=http://203.0.113.10:8081/
+
+services:
+  opencart:
+    environment:
+      OPENCART_HTTP_SERVER: ${OPENCART_PUBLIC_URL:-http://localhost:8081/}
+
+  app:
+    ports:
+      - '${APP_HOST_PORT:-3002}:3000'
+    environment:
+      NODE_ENV: production
+
+  worker:
+    environment:
+      NODE_ENV: production

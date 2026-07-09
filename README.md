@@ -2,14 +2,15 @@
 
 NestJS backend for the **UniSouk Lead Backend Assignment**. It exposes a JWT-protected REST API under `/api/v1`, persists operational data (sync jobs, audit logs) in PostgreSQL, uses Redis + BullMQ for async inventory deduction, and integrates with **OpenCart 3.x** for catalog, orders, and stock.
 
-**Live deployment:** _TBD — filled in during C-29_
+**Live deployment:** _Set your VPS public IP after deploy — see [docs/DEPLOY.md](docs/DEPLOY.md)_
 
-| Resource | URL |
-| -------- | --- |
-| API base | http://localhost:3000/api/v1 |
-| Swagger UI | http://localhost:3000/api |
-| OpenCart storefront | http://localhost:8081 |
-| OpenCart admin | http://localhost:8081/admin |
+| Resource | Local (Docker) | Production (VPS) |
+| -------- | -------------- | ---------------- |
+| API base | http://localhost:3000/api/v1 | `http://<PUBLIC_IP>:3002/api/v1` |
+| Swagger UI | http://localhost:3000/api | `http://<PUBLIC_IP>:3002/api` |
+| Health | http://localhost:3000/health | `http://<PUBLIC_IP>:3002/health` |
+| OpenCart storefront | http://localhost:8081 | `http://<PUBLIC_IP>:8081` |
+| OpenCart admin | http://localhost:8081/admin | `http://<PUBLIC_IP>:8081/admin` |
 
 ---
 
@@ -160,6 +161,18 @@ Only **`processing`** triggers inventory sync.
 | **opencart-db** | MySQL for OpenCart | internal |
 
 OpenCart is mapped to **8081** on the host (`8081:80`) to avoid local port clashes.
+
+### Production (AlmaLinux VPS)
+
+Follow **[docs/DEPLOYMENT_TRACKER.md](docs/DEPLOYMENT_TRACKER.md)** — linear checklist, one step at a time.
+
+Quick reference after tracker is complete:
+
+```bash
+cp .env.example .env   # set JWT_SECRET, API_PASSWORD_HASH, OPENCART_API_KEY
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+curl http://<PUBLIC_IP>:3002/health
+```
 
 ---
 
