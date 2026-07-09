@@ -47,14 +47,16 @@ export class ProductsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get product by ID' })
+  @ApiOperation({ summary: 'Get product by ID with variants' })
+  @ApiResponse({ status: 200, description: 'Product detail including variants array' })
   findOne(@Param('id', ParseIntPipe) id: number): Promise<ProductDto> {
     return this.productsService.findOne(id);
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a product' })
+  @ApiOperation({ summary: 'Create a product (optional options/variants)' })
+  @ApiResponse({ status: 201, description: 'Created product with variants when options provided' })
   create(@Body() dto: CreateProductDto): Promise<ProductDto> {
     return this.productsService.create(dto);
   }

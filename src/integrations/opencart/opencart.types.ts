@@ -51,6 +51,7 @@ export interface ProductDto {
   quantity: number;
   status: boolean;
   description?: string;
+  variants?: ProductVariantDto[];
 }
 
 /** Product variant / option value row. */
@@ -128,6 +129,19 @@ export interface CreateProductPayload {
   quantity: number;
   status?: boolean;
   description?: string;
+  options?: CreateProductOptionPayload[];
+}
+
+export interface CreateProductOptionPayload {
+  name: string;
+  type: 'select' | 'radio';
+  values: CreateProductOptionValuePayload[];
+}
+
+export interface CreateProductOptionValuePayload {
+  name: string;
+  priceModifier: number;
+  quantity: number;
 }
 
 export interface UpdateProductPayload {

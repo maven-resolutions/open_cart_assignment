@@ -70,16 +70,35 @@ export class OpenCartClient {
   }
 
   async createProduct(payload: CreateProductPayload): Promise<ProductDto> {
+    const fields: Record<string, string> = {
+      name: payload.name,
+      model: payload.model,
+      price: String(payload.price),
+      quantity: String(payload.quantity),
+      status: payload.status === false ? '0' : '1',
+    };
+
+    if (payload.description) {
+      fields.description = payload.description;
+    }
+
+    if (payload.options?.length) {
+      fields.options = JSON.stringify(
+        payload.options.map((option) => ({
+          name: option.name,
+          type: option.type,
+          values: option.values.map((value) => ({
+            name: value.name,
+            priceModifier: value.priceModifier,
+            quantity: value.quantity,
+          })),
+        })),
+      );
+    }
+
     const body = await this.post<Record<string, unknown>>(
       OPENCART_ROUTES.PRODUCT_ADD,
-      {
-        name: payload.name,
-        model: payload.model,
-        price: String(payload.price),
-        quantity: String(payload.quantity),
-        status: payload.status === false ? '0' : '1',
-        ...(payload.description ? { description: payload.description } : {}),
-      },
+      fields,
     );
 
     const data = this.mapper.unwrapData<Record<string, unknown>>(body);

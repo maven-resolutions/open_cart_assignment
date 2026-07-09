@@ -33,7 +33,9 @@ export class ProductsService {
 
   async findOne(productId: number): Promise<ProductDto> {
     try {
-      return await this.openCartClient.getProduct(productId);
+      const product = await this.openCartClient.getProduct(productId);
+      const variants = await this.openCartClient.listProductVariants(productId);
+      return { ...product, variants };
     } catch (error) {
       this.handleOpenCartError(error, 'Product not found');
     }
@@ -41,14 +43,25 @@ export class ProductsService {
 
   async create(dto: CreateProductDto): Promise<ProductDto> {
     try {
-      return await this.openCartClient.createProduct({
+      const product = await this.openCartClient.createProduct({
         name: dto.name,
         model: dto.model,
         price: dto.price,
         quantity: dto.quantity,
         status: dto.status ?? true,
         description: dto.description,
+        options: dto.options?.map((option) => ({
+          name: option.name,
+          type: option.type,
+          values: option.values.map((value) => ({
+            name: value.name,
+            priceModifier: value.priceModifier,
+            quantity: value.quantity,
+          })),
+        })),
       });
+      const variants = await this.openCartClient.listProductVariants(product.id);
+      return { ...product, variants };
     } catch (error) {
       this.handleOpenCartError(error);
     }

@@ -162,4 +162,92 @@ describe('OpenCartClient — retry and re-auth', () => {
       expect(httpPostSpy).toHaveBeenCalledTimes(2);
     });
   });
+
+  describe('createProduct validation', () => {
+    it('rejects OpenCart responses with missing or zero product_id', async () => {
+      httpPostSpy.mockReturnValue(
+        of({
+          data: {
+            success: true,
+            data: {
+              product_id: '0',
+              name: '',
+              model: '',
+              price: '0',
+              quantity: '0',
+              status: '0',
+            },
+          },
+        }),
+      );
+
+      await expect(
+        client.createProduct({
+          name: 'Widget',
+          model: 'WDG-1',
+          price: 9.99,
+          quantity: 10,
+        }),
+      ).rejects.toThrow('invalid product_id');
+    });
+
+    it('serializes options as JSON in the OpenCart add request body', async () => {
+      httpPostSpy.mockReturnValue(
+        of({
+          data: {
+            success: true,
+            data: {
+              product_id: '99',
+              name: 'Variant Tee',
+              model: 'VTT-1',
+              price: '24.99',
+              quantity: '50',
+              status: '1',
+            },
+          },
+        }),
+      );
+
+      await client.createProduct({
+        name: 'Variant Tee',
+        model: 'VTT-1',
+        price: 24.99,
+        quantity: 50,
+        options: [
+          {
+            name: 'Size',
+            type: 'select',
+            values: [
+              { name: 'Small', priceModifier: 0, quantity: 10 },
+              { name: 'Large', priceModifier: 5, quantity: 15 },
+            ],
+          },
+        ],
+      });
+
+      const addCall = httpPostSpy.mock.calls.find((call) =>
+        String(call[0]).includes('api/unisouk/products/add'),
+      );
+      expect(addCall).toBeDefined();
+
+      const body = new URLSearchParams(String(addCall![1]));
+      const optionsField = body.get('options');
+      expect(optionsField).toBeTruthy();
+
+      const parsed = JSON.parse(optionsField!) as Array<{
+        name: string;
+        type: string;
+        values: Array<{ name: string; priceModifier: number; quantity: number }>;
+      }>;
+      expect(parsed).toHaveLength(1);
+      expect(parsed[0]).toEqual({
+        name: 'Size',
+        type: 'select',
+        values: [
+          { name: 'Small', priceModifier: 0, quantity: 10 },
+          { name: 'Large', priceModifier: 5, quantity: 15 },
+        ],
+      });
+    });
+  });
 });

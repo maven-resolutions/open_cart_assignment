@@ -179,6 +179,29 @@ class ControllerApiUnisoukProducts extends Controller {
 		));
 	}
 
+	private function parseOptionsFromPost() {
+		if (!isset($this->request->post['options']) || $this->request->post['options'] === '') {
+			return array();
+		}
+
+		$raw = $this->request->post['options'];
+
+		if (is_array($raw)) {
+			return $raw;
+		}
+
+		// OpenCart Request::clean() htmlspecialchars-encodes all POST scalars,
+		// turning JSON quotes into &quot; — decode before json_decode.
+		$raw = html_entity_decode(trim((string)$raw), ENT_QUOTES, 'UTF-8');
+		$decoded = json_decode($raw, true);
+
+		if (!is_array($decoded)) {
+			return null;
+		}
+
+		return $decoded;
+	}
+
 	public function add() {
 		if (!$this->requireApiSession()) {
 			return;
@@ -192,8 +215,27 @@ class ControllerApiUnisoukProducts extends Controller {
 			return;
 		}
 
+		$options_payload = $this->parseOptionsFromPost();
+
+		if ($options_payload === null) {
+			$this->respond(array('error' => 'Invalid options payload — expected JSON array'));
+			return;
+		}
+
 		$data = $this->buildProductPayload($name, $model);
 		$writeModel = $this->loadWriteProductModel();
+
+		if ($options_payload) {
+			$product_options = $writeModel->buildProductOptions($options_payload);
+
+			if (!$product_options) {
+				$this->respond(array('error' => 'No valid product options were provided'));
+				return;
+			}
+
+			$data['product_option'] = $product_options;
+		}
+
 		$product_id = $writeModel->addProduct($data);
 
 		if ($product_id <= 0) {
