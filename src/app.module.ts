@@ -23,6 +23,7 @@ import { OpenCartModule } from './integrations/opencart/opencart.module';
 import { ProductsModule } from './modules/products/products.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
+import { QueuesModule } from './queues/queues.module';
 
 const getValidationConstraints = (
   err: ValidationError,
@@ -63,6 +64,7 @@ const getValidationConstraints = (
     ProductsModule,
     OrdersModule,
     InventoryModule,
+    QueuesModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,21 +1,14 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../database/database.module';
 import { OpenCartModule } from '../../integrations/opencart/opencart.module';
-import { INVENTORY_SYNC_PRODUCER } from '../../queues/inventory-sync-producer.interface';
-import { NoOpInventorySyncProducer } from '../../queues/noop-inventory-sync.producer';
+import { QueuesModule } from '../../queues/queues.module';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 
 @Module({
-  imports: [OpenCartModule, DatabaseModule],
+  imports: [OpenCartModule, DatabaseModule, QueuesModule],
   controllers: [OrdersController],
-  providers: [
-    OrdersService,
-    {
-      provide: INVENTORY_SYNC_PRODUCER,
-      useClass: NoOpInventorySyncProducer,
-    },
-  ],
+  providers: [OrdersService],
   exports: [OrdersService],
 })
 export class OrdersModule {}
