@@ -1,6 +1,13 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDateString, IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  Max,
+  Min,
+} from 'class-validator';
 import { OrderStatusE } from '../../../common/enums/order-status.enum';
 
 export class ListOrdersQueryDto {
@@ -9,12 +16,18 @@ export class ListOrdersQueryDto {
   @IsEnum(OrderStatusE)
   status?: OrderStatusE;
 
-  @ApiPropertyOptional({ example: '2026-01-01', description: 'ISO date (YYYY-MM-DD)' })
+  @ApiPropertyOptional({
+    example: '2026-01-01',
+    description: 'ISO date (YYYY-MM-DD)',
+  })
   @IsOptional()
   @IsDateString()
   dateFrom?: string;
 
-  @ApiPropertyOptional({ example: '2026-12-31', description: 'ISO date (YYYY-MM-DD)' })
+  @ApiPropertyOptional({
+    example: '2026-12-31',
+    description: 'ISO date (YYYY-MM-DD)',
+  })
   @IsOptional()
   @IsDateString()
   dateTo?: string;

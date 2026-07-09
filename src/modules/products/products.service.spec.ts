@@ -1,6 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OpenCartClient } from '../../integrations/opencart/opencart.client';
-import { ProductDto, ProductVariantDto } from '../../integrations/opencart/opencart.types';
+import {
+  ProductDto,
+  ProductVariantDto,
+} from '../../integrations/opencart/opencart.types';
 import { ProductOptionTypeE } from '../../common/enums/product-option-type.enum';
 import { ProductsService } from './products.service';
 

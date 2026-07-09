@@ -44,7 +44,10 @@ export class InventoryController {
 
   @Get(':productId')
   @ApiOperation({ summary: 'Get stock level for a product or variant' })
-  @ApiResponse({ status: 200, description: 'Stock detail with isLowStock flag' })
+  @ApiResponse({
+    status: 200,
+    description: 'Stock detail with isLowStock flag',
+  })
   findOne(
     @Param('productId', ParseIntPipe) productId: number,
     @Query() query: GetInventoryQueryDto,

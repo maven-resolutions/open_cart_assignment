@@ -5,7 +5,8 @@ import { IsInt, IsOptional, Min } from 'class-validator';
 export class AdjustInventoryDto {
   @ApiProperty({
     example: -5,
-    description: 'Quantity change applied to current stock (negative to deduct)',
+    description:
+      'Quantity change applied to current stock (negative to deduct)',
   })
   @Type(() => Number)
   @IsInt()

@@ -35,4 +35,3 @@ export class BaseModel extends Model {
     this.updatedAt = new Date().toISOString();
   }
 }
-

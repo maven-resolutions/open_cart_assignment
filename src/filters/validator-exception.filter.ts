@@ -20,7 +20,7 @@ export class ValidationExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
 
     let message = 'Validation Error';
-    let data: any = null;
+    let data: unknown = null;
 
     if (Array.isArray(exception)) {
       // Collect all messages and put the array in data

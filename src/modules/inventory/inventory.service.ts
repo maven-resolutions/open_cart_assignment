@@ -60,7 +60,10 @@ export class InventoryService {
     optionValueId?: number,
   ): Promise<InventoryItemDto> {
     try {
-      const stock = await this.openCartClient.getStock(productId, optionValueId);
+      const stock = await this.openCartClient.getStock(
+        productId,
+        optionValueId,
+      );
       const productMeta = optionValueId
         ? undefined
         : await this.tryGetProductMeta(productId);
@@ -78,7 +81,10 @@ export class InventoryService {
     let current: StockInfoDto;
 
     try {
-      current = await this.openCartClient.getStock(productId, dto.optionValueId);
+      current = await this.openCartClient.getStock(
+        productId,
+        dto.optionValueId,
+      );
     } catch (error) {
       this.handleOpenCartError(error, 'Product not found');
     }

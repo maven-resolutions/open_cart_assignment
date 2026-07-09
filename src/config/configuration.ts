@@ -1,7 +1,5 @@
-const parseIntEnv = (
-  value: string | undefined,
-  defaultValue: string,
-): number => parseInt(value ?? defaultValue, 10);
+const parseIntEnv = (value: string | undefined, defaultValue: string): number =>
+  parseInt(value ?? defaultValue, 10);
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -52,7 +50,8 @@ export default () => ({
       (isProduction ? undefined : DEV_API_PASSWORD_HASH),
   },
   jwt: {
-    secret: process.env.JWT_SECRET ?? (isProduction ? undefined : DEV_JWT_SECRET),
+    secret:
+      process.env.JWT_SECRET ?? (isProduction ? undefined : DEV_JWT_SECRET),
     expiresIn: process.env.JWT_EXPIRES_IN ?? '1d',
   },
   api: {

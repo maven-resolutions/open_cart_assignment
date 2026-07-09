@@ -49,7 +49,9 @@ export class InventorySyncService {
     };
 
     for (const lineItem of order.lineItems) {
-      if (this.isLineItemCompleted(payload.completedLineItems ?? [], lineItem)) {
+      if (
+        this.isLineItemCompleted(payload.completedLineItems ?? [], lineItem)
+      ) {
         continue;
       }
 

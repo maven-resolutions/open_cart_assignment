@@ -33,9 +33,7 @@ export class OrdersService {
     private readonly inventorySyncProducer: InventorySyncProducer,
   ) {}
 
-  async findAll(
-    query: ListOrdersQueryDto,
-  ): Promise<PaginatedResult<OrderDto>> {
+  async findAll(query: ListOrdersQueryDto): Promise<PaginatedResult<OrderDto>> {
     try {
       return await this.openCartClient.listOrders({
         status: query.status,

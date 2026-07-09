@@ -60,7 +60,9 @@ export class ProductsService {
           })),
         })),
       });
-      const variants = await this.openCartClient.listProductVariants(product.id);
+      const variants = await this.openCartClient.listProductVariants(
+        product.id,
+      );
       return { ...product, variants };
     } catch (error) {
       this.handleOpenCartError(error);

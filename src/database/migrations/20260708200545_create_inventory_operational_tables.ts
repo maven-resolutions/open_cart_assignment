@@ -17,8 +17,14 @@ export async function up(knex: Knex): Promise<void> {
     table.integer('attempts').notNullable().defaultTo(0);
     table.string('error_code', 64).nullable();
     table.jsonb('payload').nullable();
-    table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now());
-    table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(knex.fn.now());
+    table
+      .timestamp('created_at', { useTz: true })
+      .notNullable()
+      .defaultTo(knex.fn.now());
+    table
+      .timestamp('updated_at', { useTz: true })
+      .notNullable()
+      .defaultTo(knex.fn.now());
 
     table.index('status');
   });
@@ -31,8 +37,14 @@ export async function up(knex: Knex): Promise<void> {
     table.integer('qty_before').notNullable();
     table.integer('qty_after').notNullable();
     table.string('source', 32).notNullable();
-    table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now());
-    table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(knex.fn.now());
+    table
+      .timestamp('created_at', { useTz: true })
+      .notNullable()
+      .defaultTo(knex.fn.now());
+    table
+      .timestamp('updated_at', { useTz: true })
+      .notNullable()
+      .defaultTo(knex.fn.now());
 
     table.index('order_id');
     table.index('product_id');
@@ -42,8 +54,14 @@ export async function up(knex: Knex): Promise<void> {
     table.increments('id').primary();
     table.integer('product_id').notNullable().unique();
     table.integer('threshold').notNullable();
-    table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now());
-    table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(knex.fn.now());
+    table
+      .timestamp('created_at', { useTz: true })
+      .notNullable()
+      .defaultTo(knex.fn.now());
+    table
+      .timestamp('updated_at', { useTz: true })
+      .notNullable()
+      .defaultTo(knex.fn.now());
   });
 
   await knex.raw(UPDATED_AT_TRIGGER('inventory_sync_jobs'));

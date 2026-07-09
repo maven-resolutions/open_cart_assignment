@@ -1,8 +1,5 @@
 import { BaseModel } from '../base.model';
-import {
-  InventorySyncJobStatus,
-  SyncJobPayload,
-} from './inventory.types';
+import { InventorySyncJobStatus, SyncJobPayload } from './inventory.types';
 
 export class InventorySyncJob extends BaseModel {
   static tableName = 'inventory_sync_jobs';

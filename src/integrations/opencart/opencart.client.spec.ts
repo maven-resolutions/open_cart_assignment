@@ -7,7 +7,10 @@ import { OpenCartClient } from './opencart.client';
 import { OpenCartMapper } from './opencart.mapper';
 import { OcErrorBody, OpenCartApiError } from './opencart.types';
 
-function createAxiosError(status: number, data: OcErrorBody = {}): AxiosError<OcErrorBody> {
+function createAxiosError(
+  status: number,
+  data: OcErrorBody = {},
+): AxiosError<OcErrorBody> {
   const error = new Error(`HTTP ${status}`) as AxiosError<OcErrorBody>;
   error.isAxiosError = true;
   error.response = {
@@ -69,7 +72,12 @@ describe('OpenCartClient — retry and re-auth', () => {
     } as unknown as OpenCartAuthService;
     const mapper = new OpenCartMapper();
 
-    client = new OpenCartClient(httpService, configService, authService, mapper);
+    client = new OpenCartClient(
+      httpService,
+      configService,
+      authService,
+      mapper,
+    );
   });
 
   afterEach(() => {
@@ -225,8 +233,9 @@ describe('OpenCartClient — retry and re-auth', () => {
         ],
       });
 
-      const addCall = httpPostSpy.mock.calls.find((call) =>
-        String(call[0]).includes('api/unisouk/products/add'),
+      const postCalls = httpPostSpy.mock.calls as Array<[string, unknown?]>;
+      const addCall = postCalls.find((call) =>
+        call[0].includes('api/unisouk/products/add'),
       );
       expect(addCall).toBeDefined();
 
@@ -237,7 +246,11 @@ describe('OpenCartClient — retry and re-auth', () => {
       const parsed = JSON.parse(optionsField!) as Array<{
         name: string;
         type: string;
-        values: Array<{ name: string; priceModifier: number; quantity: number }>;
+        values: Array<{
+          name: string;
+          priceModifier: number;
+          quantity: number;
+        }>;
       }>;
       expect(parsed).toHaveLength(1);
       expect(parsed[0]).toEqual({

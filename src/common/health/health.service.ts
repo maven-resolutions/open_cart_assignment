@@ -63,7 +63,10 @@ export class HealthService implements OnModuleDestroy {
     try {
       const pong = await this.redis.ping();
       if (pong !== 'PONG') {
-        return { status: 'down', error: `Unexpected Redis response: ${pong}` };
+        return {
+          status: 'down',
+          error: `Unexpected Redis response: ${String(pong)}`,
+        };
       }
       return { status: 'up' };
     } catch (error) {

@@ -387,7 +387,7 @@ export class OpenCartClient {
 
     if (this.isAxiosError(error)) {
       const status = error.response?.status;
-      const data = error.response?.data as OcErrorBody | undefined;
+      const data = error.response?.data;
 
       if (data) {
         try {

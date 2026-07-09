@@ -67,17 +67,23 @@ export class EnvironmentVariables {
   @IsString()
   DATABASE_SSL?: string;
 
-  @ValidateIf((o: EnvironmentVariables) => o.NODE_ENV === Environment.Production)
+  @ValidateIf(
+    (o: EnvironmentVariables) => o.NODE_ENV === Environment.Production,
+  )
   @IsNotEmpty()
   @IsUrl({ require_tld: false })
   OPENCART_BASE_URL?: string;
 
-  @ValidateIf((o: EnvironmentVariables) => o.NODE_ENV === Environment.Production)
+  @ValidateIf(
+    (o: EnvironmentVariables) => o.NODE_ENV === Environment.Production,
+  )
   @IsNotEmpty()
   @IsString()
   OPENCART_API_USERNAME?: string;
 
-  @ValidateIf((o: EnvironmentVariables) => o.NODE_ENV === Environment.Production)
+  @ValidateIf(
+    (o: EnvironmentVariables) => o.NODE_ENV === Environment.Production,
+  )
   @IsNotEmpty()
   @IsString()
   OPENCART_API_KEY?: string;
@@ -106,7 +112,9 @@ export class EnvironmentVariables {
   @Min(0)
   LOW_STOCK_THRESHOLD?: number;
 
-  @ValidateIf((o: EnvironmentVariables) => o.NODE_ENV === Environment.Production)
+  @ValidateIf(
+    (o: EnvironmentVariables) => o.NODE_ENV === Environment.Production,
+  )
   @IsNotEmpty()
   @IsString()
   JWT_SECRET?: string;
@@ -115,12 +123,16 @@ export class EnvironmentVariables {
   @IsString()
   JWT_EXPIRES_IN?: string;
 
-  @ValidateIf((o: EnvironmentVariables) => o.NODE_ENV === Environment.Production)
+  @ValidateIf(
+    (o: EnvironmentVariables) => o.NODE_ENV === Environment.Production,
+  )
   @IsNotEmpty()
   @IsString()
   API_USER?: string;
 
-  @ValidateIf((o: EnvironmentVariables) => o.NODE_ENV === Environment.Production)
+  @ValidateIf(
+    (o: EnvironmentVariables) => o.NODE_ENV === Environment.Production,
+  )
   @IsNotEmpty()
   @IsString()
   API_PASSWORD_HASH?: string;

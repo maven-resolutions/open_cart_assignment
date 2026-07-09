@@ -6,7 +6,6 @@ import { join } from 'path';
 export const createWinstonConfig = (
   configService: ConfigService,
 ): WinstonModuleOptions => {
-  const nodeEnv = configService.get<string>('nodeEnv') || 'development';
   const logDir = configService.get<string>('log.dir') || 'logs';
   const logLevel = configService.get<string>('log.level') || 'info';
 
@@ -20,12 +19,16 @@ export const createWinstonConfig = (
   const consoleFormat = winston.format.combine(
     winston.format.colorize(),
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-    winston.format.printf(({ timestamp, level, message, context, ...meta }) => {
-      const contextStr = context ? `[${context}]` : '';
+    winston.format.printf((info) => {
+      const { timestamp, level, message, context, ...meta } = info;
+      const contextStr =
+        typeof context === 'string' && context.length > 0 ? `[${context}]` : '';
+      const msg =
+        typeof message === 'string' ? message : JSON.stringify(message);
       const metaStr = Object.keys(meta).length
         ? ` ${JSON.stringify(meta)}`
         : '';
-      return `${timestamp} ${level} ${contextStr} ${message}${metaStr}`;
+      return `${String(timestamp)} ${String(level)} ${contextStr} ${msg}${metaStr}`;
     }),
   );
 
@@ -77,4 +80,3 @@ export const createWinstonConfig = (
     ],
   };
 };
-

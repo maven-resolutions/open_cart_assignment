@@ -3,7 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { OpenCartMapper } from './opencart.mapper';
-import { OPENCART_ROUTES, OcLoginResponse, OpenCartApiError } from './opencart.types';
+import {
+  OPENCART_ROUTES,
+  OcLoginResponse,
+  OpenCartApiError,
+} from './opencart.types';
 
 @Injectable()
 export class OpenCartAuthService {
@@ -65,7 +69,9 @@ export class OpenCartAuthService {
       key: apiKey,
     });
 
-    this.logger.log('Authenticating with OpenCart API', { route: OPENCART_ROUTES.LOGIN });
+    this.logger.log('Authenticating with OpenCart API', {
+      route: OPENCART_ROUTES.LOGIN,
+    });
 
     try {
       const response = await firstValueFrom(

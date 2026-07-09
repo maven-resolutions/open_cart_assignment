@@ -19,7 +19,7 @@ export class LoggingInterceptor implements NestInterceptor {
     const request = ctx.getRequest<Request>();
     const response = ctx.getResponse<Response>();
 
-    const { method, originalUrl, ip, headers } = request;
+    const { method, originalUrl, headers } = request;
     const userAgent = headers['user-agent'] || '';
     const startTime = Date.now();
 
@@ -55,7 +55,7 @@ export class LoggingInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap({
-        next: (data) => {
+        next: () => {
           const duration = Date.now() - startTime;
           const statusCode = response.statusCode;
 
@@ -83,9 +83,12 @@ export class LoggingInterceptor implements NestInterceptor {
             });
           }
         },
-        error: (error) => {
+        error: (error: unknown) => {
           const duration = Date.now() - startTime;
           const statusCode = response.statusCode || 500;
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          const errorStack = error instanceof Error ? error.stack : undefined;
 
           const errorLog = {
             method,
@@ -94,15 +97,15 @@ export class LoggingInterceptor implements NestInterceptor {
             userAgent,
             statusCode,
             duration: `${duration}ms`,
-            error: error.message,
-            stack: error.stack,
+            error: errorMessage,
+            stack: errorStack,
             timestamp: new Date().toISOString(),
             status: 'error',
           };
 
           // Log error
           this.logger.error(
-            `✗ ${method} ${originalUrl} ${statusCode} - ${duration}ms - ${clientIp} - ${error.message}`,
+            `✗ ${method} ${originalUrl} ${statusCode} - ${duration}ms - ${clientIp} - ${errorMessage}`,
           );
 
           // Log to file via winston if available

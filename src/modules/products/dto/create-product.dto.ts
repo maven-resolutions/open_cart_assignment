@@ -38,7 +38,9 @@ export class CreateProductDto {
   @IsBoolean()
   status?: boolean;
 
-  @ApiPropertyOptional({ example: 'Ergonomic wireless mouse with USB receiver.' })
+  @ApiPropertyOptional({
+    example: 'Ergonomic wireless mouse with USB receiver.',
+  })
   @IsOptional()
   @IsString()
   description?: string;

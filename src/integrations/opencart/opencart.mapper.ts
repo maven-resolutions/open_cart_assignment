@@ -34,7 +34,11 @@ export class OpenCartMapper {
         body.error.toLowerCase().includes('insufficient stock');
 
       if (isInsufficientStock) {
-        throw new OpenCartApiError(message, INSUFFICIENT_STOCK_ERROR, statusCode);
+        throw new OpenCartApiError(
+          message,
+          INSUFFICIENT_STOCK_ERROR,
+          statusCode,
+        );
       }
 
       throw new OpenCartApiError(
@@ -45,7 +49,11 @@ export class OpenCartMapper {
     }
 
     if (body.success === false) {
-      throw new OpenCartApiError('OpenCart request failed', 'OPENCART_ERROR', statusCode);
+      throw new OpenCartApiError(
+        'OpenCart request failed',
+        'OPENCART_ERROR',
+        statusCode,
+      );
     }
   }
 
@@ -75,12 +83,12 @@ export class OpenCartMapper {
   mapProduct(raw: Record<string, unknown>): ProductDto {
     return {
       id: this.toNumber(raw.product_id ?? raw.id),
-      name: String(raw.name ?? ''),
-      model: String(raw.model ?? raw.sku ?? ''),
+      name: this.toString(raw.name),
+      model: this.toString(raw.model ?? raw.sku),
       price: this.toNumber(raw.price),
       quantity: this.toNumber(raw.quantity),
       status: this.toBoolean(raw.status),
-      description: raw.description ? String(raw.description) : undefined,
+      description: raw.description ? this.toString(raw.description) : undefined,
     };
   }
 
@@ -102,13 +110,16 @@ export class OpenCartMapper {
     };
   }
 
-  mapVariant(raw: Record<string, unknown>, productId: number): ProductVariantDto {
+  mapVariant(
+    raw: Record<string, unknown>,
+    productId: number,
+  ): ProductVariantDto {
     return {
       productId,
       optionId: this.toNumber(raw.option_id),
-      optionName: String(raw.option_name ?? raw.name ?? ''),
+      optionName: this.toString(raw.option_name ?? raw.name),
       optionValueId: this.toNumber(raw.option_value_id),
-      valueName: String(raw.value_name ?? raw.value ?? ''),
+      valueName: this.toString(raw.value_name ?? raw.value),
       priceModifier: this.toNumber(raw.price ?? raw.price_modifier),
       quantity: this.toNumber(raw.quantity),
     };
@@ -126,11 +137,11 @@ export class OpenCartMapper {
       id: this.toNumber(raw.order_id ?? raw.id),
       status,
       orderStatusId,
-      firstName: String(raw.firstname ?? raw.first_name ?? ''),
-      lastName: String(raw.lastname ?? raw.last_name ?? ''),
-      email: String(raw.email ?? ''),
+      firstName: this.toString(raw.firstname ?? raw.first_name),
+      lastName: this.toString(raw.lastname ?? raw.last_name),
+      email: this.toString(raw.email),
       total: this.toNumber(raw.total),
-      dateAdded: String(raw.date_added ?? ''),
+      dateAdded: this.toString(raw.date_added),
       lineItems,
     };
   }
@@ -160,8 +171,8 @@ export class OpenCartMapper {
       return {
         orderStatusId,
         status: this.mapOrderStatus(orderStatusId),
-        comment: String(entry.comment ?? ''),
-        dateAdded: String(entry.date_added ?? ''),
+        comment: this.toString(entry.comment),
+        dateAdded: this.toString(entry.date_added),
       };
     });
   }
@@ -180,8 +191,8 @@ export class OpenCartMapper {
     const data = this.unwrapData<Record<string, unknown>>(body);
     return this.extractArray(data, 'alerts').map((item) => ({
       productId: this.toNumber(item.product_id),
-      name: String(item.name ?? ''),
-      model: String(item.model ?? ''),
+      name: this.toString(item.name),
+      model: this.toString(item.model),
       quantity: this.toNumber(item.quantity),
       threshold: this.toNumber(item.threshold),
     }));
@@ -197,7 +208,7 @@ export class OpenCartMapper {
     return {
       orderProductId: this.toNumber(raw.order_product_id),
       productId: this.toNumber(raw.product_id),
-      name: String(raw.name ?? ''),
+      name: this.toString(raw.name),
       quantity: this.toNumber(raw.quantity),
       price: this.toNumber(raw.price),
       optionValueId: optionValueIds[0],
@@ -229,6 +240,23 @@ export class OpenCartMapper {
       return value as Record<string, unknown>[];
     }
     return [value as Record<string, unknown>];
+  }
+
+  private toString(value: unknown, fallback = ''): string {
+    if (value === null || value === undefined) {
+      return fallback;
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (
+      typeof value === 'number' ||
+      typeof value === 'boolean' ||
+      typeof value === 'bigint'
+    ) {
+      return String(value);
+    }
+    return fallback;
   }
 
   private toNumber(value: unknown): number {

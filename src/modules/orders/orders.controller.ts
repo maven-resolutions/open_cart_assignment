@@ -35,7 +35,10 @@ export class OrdersController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get order by ID with line items' })
-  @ApiResponse({ status: 200, description: 'Order detail including lineItems array' })
+  @ApiResponse({
+    status: 200,
+    description: 'Order detail including lineItems array',
+  })
   findOne(@Param('id', ParseIntPipe) id: number): Promise<OrderDto> {
     return this.ordersService.findOne(id);
   }

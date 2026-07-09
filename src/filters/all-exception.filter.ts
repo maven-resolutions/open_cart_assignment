@@ -38,8 +38,12 @@ export class AllExceptionFilter implements ExceptionFilter {
     });
   }
 
-  catch(exception: HttpException, host: ArgumentsHost) {
-    this.logger.error(exception.stack);
+  catch(exception: unknown, host: ArgumentsHost) {
+    if (exception instanceof Error) {
+      this.logger.error(exception.stack);
+    } else {
+      this.logger.error(String(exception));
+    }
 
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -47,7 +51,7 @@ export class AllExceptionFilter implements ExceptionFilter {
     const isProduction = process.env.NODE_ENV === 'production';
     let statusCode = HttpStatus.BAD_REQUEST;
     let message = 'An error occurred';
-    let data: any = null;
+    let data: unknown = null;
 
     if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
@@ -55,12 +59,13 @@ export class AllExceptionFilter implements ExceptionFilter {
       if (typeof res === 'string') {
         message = res;
       } else if (typeof res === 'object' && res !== null && 'message' in res) {
-        message = Array.isArray((res as any).message)
-          ? (res as any).message.join(', ')
-          : String((res as any).message);
+        const responseBody = res as { message?: string | string[] };
+        message = Array.isArray(responseBody.message)
+          ? responseBody.message.join(', ')
+          : String(responseBody.message ?? message);
       }
-    } else if ((exception as any) instanceof Error) {
-      message = (exception as any).message;
+    } else if (exception instanceof Error) {
+      message = String(exception.message);
     }
 
     if (exception instanceof CustomValidationException) {
@@ -76,51 +81,31 @@ export class AllExceptionFilter implements ExceptionFilter {
           const errorMsg = isProduction
             ? 'Model validation error'
             : exception.message;
-          return this.sendError(
-            response,
-            HttpStatus.BAD_REQUEST,
-            errorMsg,
-          );
+          return this.sendError(response, HttpStatus.BAD_REQUEST, errorMsg);
         }
         case 'RelationExpression': {
           const errorMsg = isProduction
             ? 'Relation expression error'
             : exception.message;
-          return this.sendError(
-            response,
-            HttpStatus.BAD_REQUEST,
-            errorMsg,
-          );
+          return this.sendError(response, HttpStatus.BAD_REQUEST, errorMsg);
         }
         case 'UnallowedRelation': {
           const errorMsg = isProduction
             ? 'Unallowed relation error'
             : exception.message;
-          return this.sendError(
-            response,
-            HttpStatus.BAD_REQUEST,
-            errorMsg,
-          );
+          return this.sendError(response, HttpStatus.BAD_REQUEST, errorMsg);
         }
         case 'InvalidGraph': {
           const errorMsg = isProduction
             ? 'Invalid graph error'
             : exception.message;
-          return this.sendError(
-            response,
-            HttpStatus.BAD_REQUEST,
-            errorMsg,
-          );
+          return this.sendError(response, HttpStatus.BAD_REQUEST, errorMsg);
         }
         default: {
           const errorMsg = isProduction
             ? 'Unknown validation error'
             : exception.message;
-          return this.sendError(
-            response,
-            HttpStatus.BAD_REQUEST,
-            errorMsg,
-          );
+          return this.sendError(response, HttpStatus.BAD_REQUEST, errorMsg);
         }
       }
     } else if (exception instanceof NotNullViolationError) {
