@@ -22,6 +22,7 @@ import { HealthModule } from './common/health/health.module';
 import { OpenCartModule } from './integrations/opencart/opencart.module';
 import { ProductsModule } from './modules/products/products.module';
 import { OrdersModule } from './modules/orders/orders.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
 
 const getValidationConstraints = (
   err: ValidationError,
@@ -61,6 +62,7 @@ const getValidationConstraints = (
     OpenCartModule,
     ProductsModule,
     OrdersModule,
+    InventoryModule,
   ],
   controllers: [AppController],
   providers: [
