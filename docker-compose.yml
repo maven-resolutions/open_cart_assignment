@@ -73,8 +73,6 @@ services:
       OPENCART_API_KEY: ${OPENCART_API_KEY:-change-me-after-install}
     volumes:
       - opencart_persist:/var/www/opencart-persist
-      - opencart_storage:/var/www/storage
-      - opencart_system_storage:/var/www/html/system/storage
       - opencart_image:/var/www/html/image
     healthcheck:
       test: ['CMD-SHELL', 'pgrep apache2 > /dev/null || exit 1']
@@ -145,6 +143,4 @@ volumes:
   postgres_data:
   opencart_db_data:
   opencart_persist:
-  opencart_storage:
-  opencart_system_storage:
   opencart_image:
