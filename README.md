@@ -293,7 +293,7 @@ Success: JSON includes `"api_token"`.
 
 ### Seed catalog data
 
-In OpenCart admin create **5 products** (≥1 with options/variants) and **3 orders** for integration testing. Entity IDs will be documented in `docs/SETUP.md` (C-27).
+In OpenCart admin create **5 products** (≥1 with options/variants) and **3 orders** for integration testing. Entity IDs will be documented in `docs/SETUP.md`.
 
 ### Verify custom extension
 
@@ -411,7 +411,7 @@ yarn migrate:status
 | Document | Purpose |
 | -------- | ------- |
 | [`docs/opencart-api-notes.md`](docs/opencart-api-notes.md) | OpenCart version decision, routes, status IDs |
-| [`docs/SETUP.md`](docs/SETUP.md) | Seeded product/order IDs _(C-27)_ |
+| [`docs/SETUP.md`](docs/SETUP.md) | Seeded product/order IDs and reviewer setup |
 | [`docs/UNISOUK_OPENCART_MANUAL_TESTING_PLAN.md`](docs/UNISOUK_OPENCART_MANUAL_TESTING_PLAN.md) | Manual QA checklist |
 | [`opencart-extension/`](opencart-extension/) | UniSouk PHP extension source |
 
