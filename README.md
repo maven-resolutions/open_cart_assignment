@@ -1,35 +1,177 @@
 # UniSouk OpenCart Backend
 
-NestJS backend for the UniSouk OpenCart integration assignment. It exposes a REST API under `/api/v1`, persists operational data in PostgreSQL, uses Redis/BullMQ for async work, and integrates with **OpenCart 3.x** for catalog, orders, and inventory.
+NestJS backend for the **UniSouk Lead Backend Assignment**. It exposes a JWT-protected REST API under `/api/v1`, persists operational data (sync jobs, audit logs) in PostgreSQL, uses Redis + BullMQ for async inventory deduction, and integrates with **OpenCart 3.x** for catalog, orders, and stock.
 
-> **First-time note:** OpenCart is **not** fully automated on first `docker compose up`. You must complete a **one-time browser setup** (install wizard, storage move, API user). This README documents exactly what to do.
+**Live deployment:** _TBD — filled in during C-29_
 
-## Stack
-
-| Service         | Purpose                                                                | Host URL (Docker Compose)    |
-| --------------- | ---------------------------------------------------------------------- | ---------------------------- |
-| **app**         | NestJS API                                                             | http://localhost:3000/api/v1 |
-| **opencart**    | OpenCart 3.0.3.x store + admin + **UniSouk `api/unisouk/*` extension** | http://localhost:8081        |
-| **postgres**    | App database                                                           | internal only                |
-| **redis**       | Queues / cache                                                         | internal only                |
-| **opencart-db** | MySQL for OpenCart                                                     | internal only                |
-| **worker**      | BullMQ worker (placeholder until C-21)                                 | n/a                          |
-
-**Port note:** Compose maps OpenCart to **8081** on the host (`8081:80`) to avoid clashes with other local services. If your machine uses **8080** instead, check `ports` in `docker-compose.yml`.
+| Resource | URL |
+| -------- | --- |
+| API base | http://localhost:3000/api/v1 |
+| Swagger UI | http://localhost:3000/api |
+| OpenCart storefront | http://localhost:8081 |
+| OpenCart admin | http://localhost:8081/admin |
 
 ---
 
-## Prerequisites
+## Architecture
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Compose)
-- [Node.js 20+](https://nodejs.org/) and [Yarn](https://yarnpkg.com/) (for local dev without Docker)
-- A browser (for the one-time OpenCart install)
+```mermaid
+flowchart TB
+  subgraph clients [Clients]
+    Postman[Postman / Frontend]
+  end
+
+  subgraph nest [NestJS modular monolith]
+    API[app container<br/>HTTP API]
+    Auth[JwtAuthGuard]
+    Products[ProductsModule]
+    Orders[OrdersModule]
+    Inventory[InventoryModule]
+    OCClient[OpenCartClient]
+    Producer[InventorySyncQueueProducer]
+  end
+
+  subgraph async [Async layer]
+    Redis[(Redis)]
+    Worker[worker container<br/>BullMQ processor]
+    SyncSvc[InventorySyncService]
+  end
+
+  subgraph data [Data stores]
+    PG[(PostgreSQL<br/>sync_jobs, audit_logs)]
+    MySQL[(MySQL<br/>OpenCart catalog)]
+  end
+
+  OC[OpenCart 3.x<br/>api/unisouk/* extension]
+
+  Postman --> API
+  API --> Auth
+  Auth --> Products & Orders & Inventory
+  Products & Orders & Inventory --> OCClient
+  OCClient --> OC
+  Orders -->|PATCH status → processing| Producer
+  Producer --> Redis
+  Redis --> Worker
+  Worker --> SyncSvc
+  SyncSvc --> OCClient
+  SyncSvc --> PG
+  API --> PG
+  OC --> MySQL
+```
+
+### Module layout
+
+| Path | Responsibility |
+| ---- | -------------- |
+| `src/modules/products/` | Product CRUD + variants (proxied to OpenCart) |
+| `src/modules/orders/` | Order list, detail, status PATCH + sync job enqueue |
+| `src/modules/inventory/` | Stock read/adjust/alerts + sync service/processor |
+| `src/integrations/opencart/` | Auth, HTTP client, retry, mapper, types |
+| `src/queues/` | BullMQ module + `inventory-sync` producer |
+| `src/database/` | Knex migrations + Objection models for sync/audit tables |
+| `src/worker.ts` | Separate Nest bootstrap for the BullMQ worker process |
+
+Domain modules never call axios directly — all OpenCart traffic goes through `OpenCartClient`.
+
+---
+
+## Design decisions
+
+### Why a modular monolith?
+
+OpenCart is the system of record for products, orders, and stock. This service adds a **thin orchestration layer**: JWT auth, validation, consistent `{ statusCode, status, data, message }` responses, operational tables for sync auditing, and async stock deduction. Splitting into microservices would add network and deployment overhead without benefit at assignment scale. NestJS modules (`ProductsModule`, `OrdersModule`, `InventoryModule`) keep boundaries clear and match the three assignment modules.
+
+### Why BullMQ?
+
+When an order moves to **`processing`**, stock must be deducted in OpenCart **asynchronously**:
+
+1. OpenCart status update is synchronous (assignment API contract).
+2. Stock deduction may involve multiple line items, retries, and partial progress.
+3. Failures (e.g. insufficient stock) must be recorded without blocking the HTTP response.
+
+**Flow:** `OrdersService.updateStatus` → insert `inventory_sync_jobs` row → `InventorySyncQueueProducer.enqueue(orderId)` → BullMQ job → `InventorySyncProcessor` → `InventorySyncService.processOrder` → OpenCart `api/unisouk/stock/edit` per line item + `inventory_audit_logs` writes.
+
+The **worker** runs as a separate Docker service (`worker`) sharing the same codebase as `app` but without the HTTP server — only queue consumers.
+
+---
+
+## Inventory sync (end-to-end)
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant OrdersService
+  participant OpenCart
+  participant PG as PostgreSQL
+  participant Queue as BullMQ/Redis
+  participant Worker
+  participant SyncService
+
+  Client->>OrdersService: PATCH /orders/:id/status { status: processing }
+  OrdersService->>OpenCart: api/order/edit (status update)
+  OrdersService->>PG: INSERT inventory_sync_jobs (pending)
+  OrdersService->>Queue: enqueue(orderId)
+  OrdersService-->>Client: 200 updated order
+
+  Queue->>Worker: job sync-order-{id}
+  Worker->>SyncService: processOrder(orderId)
+  SyncService->>PG: PATCH job → processing
+  SyncService->>OpenCart: api/order/info (line items)
+
+  loop each line item
+    SyncService->>OpenCart: api/unisouk/stock/info
+    alt sufficient stock
+      SyncService->>OpenCart: api/unisouk/stock/edit (deduct)
+      SyncService->>PG: INSERT inventory_audit_logs
+      SyncService->>PG: PATCH job payload (progress)
+    else insufficient stock
+      SyncService->>PG: PATCH job → failed
+      SyncService-->>Worker: UnrecoverableError
+    end
+  end
+
+  SyncService->>PG: PATCH job → completed
+```
+
+**Idempotency:** Completed line items are stored in `inventory_sync_jobs.payload.completedLineItems`. Retries skip already-deducted lines. Jobs with status `completed` are not re-enqueued.
+
+**Status transitions** (enforced in API before OpenCart update):
+
+| From | Allowed to |
+| ---- | ---------- |
+| `pending` | `processing`, `cancelled` |
+| `processing` | `shipped`, `cancelled` |
+| `shipped` | `complete` |
+| `complete`, `cancelled` | _(terminal)_ |
+
+Only **`processing`** triggers inventory sync.
+
+---
+
+## Stack (Docker Compose)
+
+| Service | Purpose | Host URL |
+| ------- | ------- | -------- |
+| **app** | NestJS HTTP API | http://localhost:3000/api/v1 |
+| **worker** | BullMQ inventory-sync consumer | n/a (background) |
+| **opencart** | OpenCart 3.0.3.x + UniSouk `api/unisouk/*` extension | http://localhost:8081 |
+| **postgres** | App DB (sync jobs, audit logs) | internal |
+| **redis** | BullMQ queues | internal |
+| **opencart-db** | MySQL for OpenCart | internal |
+
+OpenCart is mapped to **8081** on the host (`8081:80`) to avoid local port clashes.
 
 ---
 
 ## Quick start (Docker)
 
-### 1. Clone and configure env
+### Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Compose)
+- [Node.js 20+](https://nodejs.org/) and [Yarn](https://yarnpkg.com/) (optional — for local dev without Docker)
+- A browser (for one-time OpenCart admin steps)
+
+### 1. Clone and configure
 
 ```bash
 git clone <repository-url>
@@ -37,113 +179,103 @@ cd open_cart_assignment
 cp .env.example .env
 ```
 
-Edit `.env` for local overrides. For Docker, the important OpenCart vars are set in `docker-compose.yml` — see [Wire Nest to OpenCart](#wire-nest-to-opencart-after-api-user-is-created) below.
+Edit `.env` — at minimum set `OPENCART_API_KEY` after creating the OpenCart API user (see below).
 
-### 2. Start the stack
+### 2. Build and start
 
 ```bash
 docker compose up -d --build
 ```
 
-Wait until services are up:
+Wait for healthy services:
 
 ```bash
 docker compose ps
 ```
 
-### 3. Verify the Nest API
+Migrations run automatically when the **app** container starts (`docker/entrypoint.sh`).
 
-The API uses a global prefix — **`/` returns 404**; that is expected.
+### 3. Verify the API
+
+The root path `/` returns 404 by design (global prefix is `/api/v1`).
 
 ```bash
 curl http://localhost:3000/api/v1
+curl http://localhost:3000/health
 ```
 
-You should get a JSON envelope with the welcome message.
+Swagger UI: http://localhost:3000/api
+
+### 4. Obtain a JWT
+
+```bash
+curl -X POST http://localhost:3000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
+```
+
+Use the returned token: `Authorization: Bearer <token>` on protected routes.
+
+Default dev credentials come from `.env.example` (`API_USER` / bcrypt hash for `admin123`).
 
 ---
 
-## First-time OpenCart setup (manual, one-time)
+## OpenCart API credential setup
 
-OpenCart ships as a fresh image with **no store configured**. The first person (or first fresh volume) must complete these steps in the browser. **Repeat only if you destroy the `opencart_db_data` volume.**
+OpenCart ships as a fresh image. **First run per volume** requires browser steps for install, storage move, and API user creation. Repeat only if you destroy the `opencart_db_data` volume (`docker compose down -v`).
 
-### Step 1 — Run the install wizard
+> Compose sets `OPENCART_AUTO_INSTALL=true` with default admin `admin` / `admin123`. If auto-install succeeds, skip the install wizard but still complete **storage move** and **API user** steps.
 
-1. Open **http://localhost:8081** (or your mapped host port).
-2. You will be redirected to the **install wizard** (`/install/`).
-3. Accept the license → pass pre-installation checks → reach **Configuration (step 3/4)**.
+### Install wizard (if not auto-installed)
 
-**Database connection** — use Docker service names, **not** `localhost`:
+1. Open **http://localhost:8081** → install wizard.
+2. Database connection — use Docker service names:
 
-| Field     | Value           |
-| --------- | --------------- |
-| DB Driver | MySQLi          |
-| Hostname  | `opencart-db`   |
-| Username  | `opencart`      |
-| Password  | `opencart`      |
-| Database  | `opencart`      |
-| Port      | `3306`          |
-| Prefix    | `oc_` (default) |
+| Field | Value |
+| ----- | ----- |
+| Hostname | `opencart-db` |
+| Username | `opencart` |
+| Password | `opencart` |
+| Database | `opencart` |
+| Port | `3306` |
 
-If that fails, try **Username** `root` / **Password** `opencart_root` (see `docker-compose.yml` → `opencart-db`).
+Fallback: `root` / `opencart_root`.
 
-**Administration** — choose your own admin login (for OpenCart admin only):
+3. Complete admin account setup → **Installation complete**.
 
-| Field    | Example             |
-| -------- | ------------------- |
-| Username | `admin`             |
-| Password | _(choose and save)_ |
-| E-Mail   | your email          |
-
-4. Finish step 4 — you should see **Installation complete**.
-
-### Step 2 — Delete the install directory (security)
-
-OpenCart requires removing `/install` after setup:
+### Post-install security
 
 ```bash
 docker compose exec opencart rm -rf /var/www/html/install
 ```
 
-### Step 3 — Move storage (admin security modal)
+In admin (**http://localhost:8081/admin**): accept the **storage move** modal → path `/var/www/` + `storage` → **Move**.
 
-1. Log in to **http://localhost:8081/admin** with your admin credentials.
-2. On first login, OpenCart shows **Important Security Notification!** (move storage outside web root).
-3. Choose **Automatically Move**, path **`/var/www/`** + **`storage`**, click **Move**.
+### Create API user
 
-### Step 4 — Create an OpenCart API user
-
-The Nest app authenticates to OpenCart with an **API user**, not the admin password.
-
-1. In admin: **System → Users → API → Add New**
-2. Set **Username** (e.g. `unisouk-api`)
-3. Click **Generate** for **Key** and **copy the key** (shown once)
-4. Open the API user → **IP Addresses** tab → add allowed IPs:
-   - `127.0.0.1` — curl/tests from your host
-   - For local Docker dev, if login fails with an IP error, add `0.0.0.0` _(dev only)_ or the app container’s IP on the compose network
+1. **System → Users → API → Add New**
+2. Username: `unisouk-api` (match `OPENCART_API_USERNAME`)
+3. **Generate** key → copy it
+4. **IP Addresses** tab → add `127.0.0.1`; for Docker dev add `0.0.0.0` if IP errors occur
 5. **Save**
 
-### Step 5 — Wire Nest to OpenCart
+### Wire Nest to OpenCart
 
-Set these in **`.env`** (and ensure `docker-compose.yml` `app` service picks them up):
+In **`.env`**:
 
 ```env
-# From inside the app container, OpenCart is the compose service name:
 OPENCART_BASE_URL=http://opencart
-
 OPENCART_API_USERNAME=unisouk-api
-OPENCART_API_KEY=<paste-generated-key-here>
+OPENCART_API_KEY=<paste-generated-key>
 ```
 
-Restart the app:
+Restart:
 
 ```bash
-docker compose up -d app
+docker compose up -d app worker
 ```
 
-### Step 6 — Verify OpenCart API login
-
-From your **host** (use `localhost` and the **host** port, e.g. 8081):
+### Verify OpenCart login
 
 ```bash
 curl -X POST "http://localhost:8081/index.php?route=api/login" \
@@ -151,294 +283,120 @@ curl -X POST "http://localhost:8081/index.php?route=api/login" \
   -d "key=YOUR_API_KEY"
 ```
 
-**Success** — JSON includes `"api_token"`:
+Success: JSON includes `"api_token"`.
 
-```json
-{
-  "success": "...",
-  "api_token": "..."
-}
-```
+| Failure | Fix |
+| ------- | --- |
+| `error.ip` | Add IP to API user allowlist |
+| `error.key` | Regenerate key; update `.env`; restart `app` + `worker` |
+| HTML install wizard | Complete first-time setup |
 
-**Common failures:**
+### Seed catalog data
 
-| Response                    | Fix                                                          |
-| --------------------------- | ------------------------------------------------------------ |
-| `error.ip` — IP not allowed | Add your IP (or dev allowlist) under API user → IP Addresses |
-| `error.key` — incorrect key | Regenerate key; update `.env` and restart `app`              |
-| Connection refused          | Check `docker compose ps` — `opencart` must be running       |
+In OpenCart admin create **5 products** (≥1 with options/variants) and **3 orders** for integration testing. Entity IDs will be documented in `docs/SETUP.md` (C-27).
 
-### Step 7 — Seed catalog data (assignment prep)
-
-In OpenCart admin, create data for later integration tests (IDs go in `docs/SETUP.md` when that doc is added):
-
-- **5 products** (Catalog → Products) — at least **one with options/variants**
-- **3 orders** (Sales → Orders) — e.g. pending, for status/sync tests
-
-Native OpenCart 3 API covers **orders** partially; product CRUD, order list, and stock APIs are provided by the **UniSouk custom extension** baked into the Docker OpenCart image — see [OpenCart custom extension](#opencart-custom-extension-apiunisouk) below.
-
-### Step 8 — Verify the custom extension (before NestJS)
-
-After login succeeds (step 6), confirm the `api/unisouk/*` routes respond with JSON — not HTML 404 or the install wizard.
+### Verify custom extension
 
 ```bash
-export OC_BASE="http://localhost:8081"
-export OC_USER="unisouk-api"
-export OC_KEY="YOUR_API_KEY"
-
-export OC_TOKEN=$(curl -s -X POST "$OC_BASE/index.php?route=api/login" \
-  -d "username=$OC_USER" \
-  -d "key=$OC_KEY" | jq -r '.api_token')
+export OC_TOKEN=$(curl -s -X POST "http://localhost:8081/index.php?route=api/login" \
+  -d "username=unisouk-api" -d "key=YOUR_API_KEY" | jq -r '.api_token')
 
 curl -s -X POST \
-  "$OC_BASE/index.php?route=api/unisouk/products&api_token=$OC_TOKEN" \
-  -d "page=1" \
-  -d "limit=20"
+  "http://localhost:8081/index.php?route=api/unisouk/products&api_token=$OC_TOKEN" \
+  -d "page=1" -d "limit=20"
 ```
 
-**Success** — JSON with `"success": true` and `data.products` (array may be empty if no catalog seed yet).
-
-Only after this passes should you test Nest endpoints such as `GET /api/v1/products`.
+Pass: `"success": true` with `data.products` — not HTML 404.
 
 ---
 
-## OpenCart custom extension (`api/unisouk/*`)
+## OpenCart integration summary
 
-OpenCart 3’s **native** catalog API supports login and order read/update (`api/login`, `api/order/info`, `api/order/history`, `api/order/edit`). It does **not** expose product CRUD, paginated order list, or stock management.
+OpenCart 3 **native** API covers login and order read/update. Product CRUD, order list, and stock APIs require the **UniSouk custom PHP extension** baked into the Docker image (`opencart-extension/` → `docker/opencart/Dockerfile`).
 
-The **UniSouk custom PHP extension** fills that gap. It is **built into the Docker OpenCart image** on every `docker compose build` — no manual copy step after clone.
-
-### Why it exists
-
-| Assignment module                     | Native OC3 API | Custom extension                         |
-| ------------------------------------- | -------------- | ---------------------------------------- |
-| Product list / CRUD / variants        | Not available  | `api/unisouk/products/*`                 |
-| Order list + filters                  | Not available  | `api/unisouk/orders`                     |
-| Stock read / adjust / alerts          | Not available  | `api/unisouk/stock/*`                    |
-| Order detail / history / status PATCH | Available      | Uses native `api/order/*` (no extension) |
-
-NestJS never calls OpenCart with raw axios from domain modules — all traffic goes through `OpenCartClient` (`src/integrations/opencart/`), which targets the routes below.
-
-### Deployment (Docker)
-
-| Item                     | Location                                                              |
-| ------------------------ | --------------------------------------------------------------------- |
-| Extension source         | `opencart-extension/catalog/controller/api/unisouk/`                  |
-| Language files           | `opencart-extension/catalog/language/en-gb/api/unisouk/`              |
-| Docker build             | `docker/opencart/Dockerfile` (extends `aamservices/opencart:3.0.3.6`) |
-| Compose service          | `opencart` builds from that Dockerfile (`docker-compose.yml`)         |
-| Runtime path (container) | `/var/www/html/catalog/controller/api/unisouk/`                       |
-
-Rebuild after changing extension PHP:
-
-```bash
-docker compose build opencart
-docker compose up -d opencart
-```
-
-### Authentication
-
-Same session model as native OpenCart API:
-
-1. `POST api/login` with `username` + `key` → receive `api_token`
-2. Pass `api_token` as a **query parameter** on every subsequent call
-3. All extension endpoints use **POST** with `Content-Type: application/x-www-form-urlencoded`
-4. Each controller checks `$this->session->data['api_id']` — unauthenticated calls return a permission error JSON
-
-### Response envelope
-
-```json
-{ "success": true, "data": { ... } }
-{ "error": "message" }
-```
-
-Nest `OpenCartMapper` normalizes these payloads into internal DTOs.
-
-### Extension endpoints (full list)
-
-All routes: `POST {OPENCART_BASE_URL}/index.php?route={route}&api_token={token}`
-
-#### Products — `products.php`
-
-| Route                          | Method      | Body fields                                                            | Purpose                                                                         |
-| ------------------------------ | ----------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `api/unisouk/products`         | `index()`   | `page`, `limit`                                                        | Paginated product list                                                          |
-| `api/unisouk/products/info`    | `info()`    | `product_id`                                                           | Single product detail                                                           |
-| `api/unisouk/products/add`     | `add()`     | `name`, `model`, `price`, `quantity`, optional `status`, `description` | Create product                                                                  |
-| `api/unisouk/products/edit`    | `edit()`    | `product_id` + fields to update                                        | Update product                                                                  |
-| `api/unisouk/products/delete`  | `delete()`  | `product_id`                                                           | Delete product                                                                  |
-| `api/unisouk/products/options` | `options()` | `product_id`                                                           | List variants (option name, value, `option_value_id`, price modifier, quantity) |
-
-**Product list response shape:**
-
-```json
-{
-  "success": true,
-  "data": {
-    "products": [
-      {
-        "product_id": 42,
-        "name": "Wireless Mouse",
-        "model": "WM-001",
-        "price": 29.99,
-        "quantity": 100,
-        "status": 1,
-        "description": "..."
-      }
-    ],
-    "total": 5
-  }
-}
-```
-
-#### Orders — `orders.php`
-
-| Route                | Method    | Body fields                                                         | Purpose                              |
-| -------------------- | --------- | ------------------------------------------------------------------- | ------------------------------------ |
-| `api/unisouk/orders` | `index()` | `page`, `limit`, optional `order_status_id`, `date_from`, `date_to` | Paginated order list with line items |
-
-Each order includes `products[]` with `order_product_id`, `product_id`, `quantity`, `price`, and `option_value_id` / `option_value_ids` for variant lines.
-
-#### Stock — `stock.php`
-
-| Route                      | Method     | Body fields                                          | Purpose                       |
-| -------------------------- | ---------- | ---------------------------------------------------- | ----------------------------- |
-| `api/unisouk/stock/info`   | `info()`   | `product_id`, optional `option_value_id`             | Read base or variant quantity |
-| `api/unisouk/stock/edit`   | `edit()`   | `product_id`, `quantity`, optional `option_value_id` | Set absolute stock level      |
-| `api/unisouk/stock/alerts` | `alerts()` | optional `threshold` (default 10)                    | Products below threshold      |
-
-**Stock errors:** setting quantity below zero returns `"Insufficient stock"` (Nest maps this to `INSUFFICIENT_STOCK`).
-
-### Verify extension (curl checklist)
-
-Run from your host against `http://localhost:8081` after steps 1–6 above.
-
-```bash
-export OC_BASE="http://localhost:8081"
-export OC_USER="unisouk-api"
-export OC_KEY="YOUR_API_KEY"
-
-# 1. Login
-curl -s -X POST "$OC_BASE/index.php?route=api/login" \
-  -d "username=$OC_USER" \
-  -d "key=$OC_KEY"
-
-# 2. Save token
-export OC_TOKEN=$(curl -s -X POST "$OC_BASE/index.php?route=api/login" \
-  -d "username=$OC_USER" \
-  -d "key=$OC_KEY" | jq -r '.api_token')
-
-# 3. List products (extension)
-curl -s -X POST \
-  "$OC_BASE/index.php?route=api/unisouk/products&api_token=$OC_TOKEN" \
-  -d "page=1" -d "limit=20"
-
-# 4. Product detail (replace 42 with a real product_id)
-curl -s -X POST \
-  "$OC_BASE/index.php?route=api/unisouk/products/info&api_token=$OC_TOKEN" \
-  -d "product_id=42"
-
-# 5. Variants
-curl -s -X POST \
-  "$OC_BASE/index.php?route=api/unisouk/products/options&api_token=$OC_TOKEN" \
-  -d "product_id=42"
-
-# 6. Stock read
-curl -s -X POST \
-  "$OC_BASE/index.php?route=api/unisouk/stock/info&api_token=$OC_TOKEN" \
-  -d "product_id=42"
-
-# 7. Order list
-curl -s -X POST \
-  "$OC_BASE/index.php?route=api/unisouk/orders&api_token=$OC_TOKEN" \
-  -d "page=1" -d "limit=20"
-
-# 8. Low-stock alerts
-curl -s -X POST \
-  "$OC_BASE/index.php?route=api/unisouk/stock/alerts&api_token=$OC_TOKEN" \
-  -d "threshold=10"
-
-# 9. Native order detail (sanity — no extension)
-curl -s -X POST \
-  "$OC_BASE/index.php?route=api/order/info&api_token=$OC_TOKEN" \
-  -d "order_id=1"
-```
-
-| Check               | Pass if                                                                                           |
-| ------------------- | ------------------------------------------------------------------------------------------------- |
-| Login               | JSON contains `api_token`                                                                         |
-| List products       | JSON `"success": true`, not HTML 404                                                              |
-| Permission error    | JSON `error` about permission — fix token or IP allowlist                                         |
-| Install wizard HTML | OpenCart not configured — complete [first-time setup](#first-time-opencart-setup-manual-one-time) |
-
-### NestJS mapping (what calls the extension)
-
-| Nest route (JWT)                    | OpenCart route                 |
-| ----------------------------------- | ------------------------------ |
-| `GET /api/v1/products`              | `api/unisouk/products`         |
-| `GET /api/v1/products/:id`          | `api/unisouk/products/info`    |
-| `POST /api/v1/products`             | `api/unisouk/products/add`     |
-| `PUT /api/v1/products/:id`          | `api/unisouk/products/edit`    |
-| `DELETE /api/v1/products/:id`       | `api/unisouk/products/delete`  |
+| Nest route (JWT) | OpenCart route |
+| ---------------- | -------------- |
+| `GET/POST/PUT/DELETE /api/v1/products*` | `api/unisouk/products/*` |
 | `GET /api/v1/products/:id/variants` | `api/unisouk/products/options` |
-| `GET /api/v1/orders` _(C-18)_       | `api/unisouk/orders`           |
-| `GET /api/v1/inventory/*` _(C-19)_  | `api/unisouk/stock/*`          |
+| `GET /api/v1/orders` | `api/unisouk/orders` |
+| `GET/PATCH /api/v1/orders/:id` | native `api/order/*` |
+| `GET/PATCH /api/v1/inventory*` | `api/unisouk/stock/*` |
 
-Further API contract detail: [`docs/opencart-api-notes.md`](docs/opencart-api-notes.md).
+Full route catalog: [`docs/opencart-api-notes.md`](docs/opencart-api-notes.md).
 
----
+Rebuild extension after PHP changes:
 
-## What is automated vs manual?
-
-| Step                                 | Automated on `docker compose up`?                                    |
-| ------------------------------------ | -------------------------------------------------------------------- |
-| Postgres, Redis, MySQL containers    | Yes                                                                  |
-| Nest app build, migrations on start  | Yes (`docker/entrypoint.sh`)                                         |
-| OpenCart install wizard              | **No** — browser required (once per volume)                          |
-| Storage move modal                   | **No** — browser required (once)                                     |
-| API user + IP allowlist              | **No** — admin UI required (once)                                    |
-| Product/order seed data              | **No** — admin UI (or future seed script)                            |
-| Custom `api/unisouk/*` PHP extension | **Yes** — baked into OpenCart image via `docker/opencart/Dockerfile` |
+```bash
+docker compose build opencart && docker compose up -d opencart
+```
 
 ---
 
-## Running without Docker (local dev)
+## Running without Docker
 
 ```bash
 yarn install
 cp .env.example .env
-# Point DATABASE_* at local Postgres; OPENCART_BASE_URL=http://localhost:8081
+# Point DATABASE_* at local Postgres; REDIS_HOST=localhost; OPENCART_BASE_URL=http://localhost:8081
 yarn migrate:latest
-yarn dev
+yarn dev          # API
+yarn start:worker # BullMQ worker (separate terminal)
 ```
 
-API: http://localhost:3000/api/v1
+---
 
-> `yarn start:prod` expects `dist/src/main.js` after `yarn build` (Nest output layout).
+## Testing
+
+```bash
+yarn test              # unit tests
+yarn test:cov          # coverage
+yarn test:e2e          # health + auth smoke tests
+yarn test:ci           # lint + unit tests with coverage (CI command)
+```
+
+Postman collection: added in C-28.
+
+---
+
+## Known limitations
+
+| Limitation | Impact |
+| ---------- | ------ |
+| **Eventual consistency** | Order status updates to `processing` synchronously; stock deduction happens async. A 200 response does not guarantee stock was deducted yet. |
+| **No order rollback on sync failure** | If sync fails (e.g. insufficient stock), the order remains `processing` in OpenCart; the sync job is marked `failed`. No automatic status revert. |
+| **Manual OpenCart bootstrap** | Install, storage move, API user, and catalog seed are not fully automated (except optional auto-install). |
+| **Single API user auth** | Simple JWT login (`API_USER` / password hash) — no multi-tenant RBAC. |
+| **OpenCart as source of truth** | No local product/order replica; Postgres only stores sync operational data. |
+| **Custom extension dependency** | Product list/CRUD and stock APIs require the UniSouk Docker image; plain OpenCart 3 images will not work for those modules. |
+| **Worker co-deployment** | Inventory sync requires the `worker` service (or `yarn start:worker`) running alongside `app`. |
+
+---
+
+## AI tool usage disclosure
+
+This project was developed with assistance from **AI coding tools** (Cursor IDE with Claude) for:
+
+- Implementation planning and commit sequencing (`docs/UNISOUK_OPENCART_COMMIT_TRACKER.md`)
+- NestJS module scaffolding, OpenCart client integration, BullMQ wiring, and test specs
+- README and documentation drafts
+
+All generated code was reviewed, tested (`yarn test:ci`), and adjusted manually. OpenCart PHP extension logic and assignment-specific business rules were validated against the UniSouk assignment brief and live OpenCart API smoke tests.
 
 ---
 
 ## Docker commands
 
 ```bash
-# Build and start
-docker compose up -d --build
-
-# Logs
-docker compose logs -f app
-
-# Stop
-docker compose down
-
-# Reset everything (including OpenCart DB — re-run manual install!)
-docker compose down -v
+docker compose up -d --build   # build and start
+docker compose logs -f app     # API logs
+docker compose logs -f worker  # sync worker logs
+docker compose down            # stop
+docker compose down -v         # reset volumes (re-run OpenCart setup!)
 ```
 
 ---
 
-## Database (Nest / PostgreSQL)
-
-Migrations run automatically when the **app** container starts. Manual runs:
+## Database migrations
 
 ```bash
 yarn migrate:latest
@@ -448,23 +406,14 @@ yarn migrate:status
 
 ---
 
-## Testing
-
-```bash
-yarn test
-yarn test:e2e
-```
-
----
-
 ## Related documentation
 
-| Document                                                                                       | Purpose                                                                   |
-| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| [`docs/opencart-api-notes.md`](docs/opencart-api-notes.md)                                     | OpenCart version decision, native vs custom routes, status IDs, seed plan |
-| [`opencart-extension/`](opencart-extension/)                                                   | UniSouk PHP extension source (`api/unisouk/*`)                            |
-| [`docs/UNISOUK_OPENCART_COMMIT_TRACKER.md`](docs/UNISOUK_OPENCART_COMMIT_TRACKER.md)           | Commit-by-commit implementation plan                                      |
-| [`docs/UNISOUK_OPENCART_MANUAL_TESTING_PLAN.md`](docs/UNISOUK_OPENCART_MANUAL_TESTING_PLAN.md) | Manual QA after each commit                                               |
+| Document | Purpose |
+| -------- | ------- |
+| [`docs/opencart-api-notes.md`](docs/opencart-api-notes.md) | OpenCart version decision, routes, status IDs |
+| [`docs/SETUP.md`](docs/SETUP.md) | Seeded product/order IDs _(C-27)_ |
+| [`docs/UNISOUK_OPENCART_MANUAL_TESTING_PLAN.md`](docs/UNISOUK_OPENCART_MANUAL_TESTING_PLAN.md) | Manual QA checklist |
+| [`opencart-extension/`](opencart-extension/) | UniSouk PHP extension source |
 
 ---
 
