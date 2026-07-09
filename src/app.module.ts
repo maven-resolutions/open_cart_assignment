@@ -20,6 +20,7 @@ import * as winston from 'winston';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './common/health/health.module';
 import { OpenCartModule } from './integrations/opencart/opencart.module';
+import { ProductsModule } from './modules/products/products.module';
 
 const getValidationConstraints = (
   err: ValidationError,
@@ -57,6 +58,7 @@ const getValidationConstraints = (
     AuthModule,
     HealthModule,
     OpenCartModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [

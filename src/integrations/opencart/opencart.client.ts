@@ -48,10 +48,13 @@ export class OpenCartClient {
     const page = params.page ?? 1;
     const limit = params.limit ?? 20;
 
-    const body = await this.post<Record<string, unknown>>(OPENCART_ROUTES.PRODUCTS_LIST, {
-      page: String(page),
-      limit: String(limit),
-    });
+    const body = await this.post<Record<string, unknown>>(
+      OPENCART_ROUTES.PRODUCTS_LIST,
+      {
+        page: String(page),
+        limit: String(limit),
+      },
+    );
 
     return this.mapper.mapProductList(body, page, limit);
   }
@@ -80,7 +83,16 @@ export class OpenCartClient {
     );
 
     const data = this.mapper.unwrapData<Record<string, unknown>>(body);
-    return this.mapper.mapProduct(data);
+    const product = this.mapper.mapProduct(data);
+
+    if (product.id <= 0) {
+      throw new OpenCartApiError(
+        'OpenCart create product returned an invalid product_id',
+        'OPENCART_ERROR',
+      );
+    }
+
+    return product;
   }
 
   async updateProduct(
@@ -169,9 +181,12 @@ export class OpenCartClient {
   }
 
   async getOrder(orderId: number): Promise<OrderDto> {
-    const body = await this.post<Record<string, unknown>>(OPENCART_ROUTES.ORDER_INFO, {
-      order_id: String(orderId),
-    });
+    const body = await this.post<Record<string, unknown>>(
+      OPENCART_ROUTES.ORDER_INFO,
+      {
+        order_id: String(orderId),
+      },
+    );
 
     return this.mapper.mapOrder(body);
   }
@@ -192,7 +207,10 @@ export class OpenCartClient {
   ): Promise<void> {
     const orderStatusId = ORDER_STATUS_TO_OC_ID[status];
     if (orderStatusId === undefined) {
-      throw new OpenCartApiError(`Unknown order status: ${status}`, 'VALIDATION_ERROR');
+      throw new OpenCartApiError(
+        `Unknown order status: ${status}`,
+        'VALIDATION_ERROR',
+      );
     }
 
     const fields: Record<string, string> = {
@@ -204,10 +222,16 @@ export class OpenCartClient {
       fields.comment = comment;
     }
 
-    await this.post<Record<string, unknown>>(OPENCART_ROUTES.ORDER_EDIT, fields);
+    await this.post<Record<string, unknown>>(
+      OPENCART_ROUTES.ORDER_EDIT,
+      fields,
+    );
   }
 
-  async getStock(productId: number, optionValueId?: number): Promise<StockInfoDto> {
+  async getStock(
+    productId: number,
+    optionValueId?: number,
+  ): Promise<StockInfoDto> {
     const fields: Record<string, string> = {
       product_id: String(productId),
     };
@@ -268,7 +292,8 @@ export class OpenCartClient {
     data: Record<string, string>,
     options: RequestOptions = {},
   ): Promise<T> {
-    const maxRetries = this.configService.get<number>('opencart.maxRetries') ?? 3;
+    const maxRetries =
+      this.configService.get<number>('opencart.maxRetries') ?? 3;
     let lastError: unknown;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -278,9 +303,14 @@ export class OpenCartClient {
         lastError = error;
 
         if (this.shouldReauth(error) && !options.isRetryAfterAuth) {
-          this.logger.warn('OpenCart permission error — re-authenticating', { route });
+          this.logger.warn('OpenCart permission error — re-authenticating', {
+            route,
+          });
           await this.authService.refreshToken();
-          return this.post<T>(route, data, { ...options, isRetryAfterAuth: true });
+          return this.post<T>(route, data, {
+            ...options,
+            isRetryAfterAuth: true,
+          });
         }
 
         if (!this.isRetryable(error) || attempt >= maxRetries) {
@@ -328,7 +358,10 @@ export class OpenCartClient {
     }
   }
 
-  private normalizeError(error: unknown, route: OpenCartRoute): OpenCartApiError {
+  private normalizeError(
+    error: unknown,
+    route: OpenCartRoute,
+  ): OpenCartApiError {
     if (error instanceof OpenCartApiError) {
       return error;
     }
@@ -366,10 +399,7 @@ export class OpenCartClient {
 
   private shouldReauth(error: unknown): boolean {
     if (error instanceof OpenCartApiError) {
-      return (
-        error.code === 'PERMISSION_DENIED' ||
-        error.statusCode === 401
-      );
+      return error.code === 'PERMISSION_DENIED' || error.statusCode === 401;
     }
 
     if (this.isAxiosError(error)) {

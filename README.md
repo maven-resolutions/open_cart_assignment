@@ -9,7 +9,7 @@ NestJS backend for the UniSouk OpenCart integration assignment. It exposes a RES
 | Service | Purpose | Host URL (Docker Compose) |
 | ------- | ------- | ------------------------- |
 | **app** | NestJS API | http://localhost:3000/api/v1 |
-| **opencart** | OpenCart 3.0.3.x store + admin | http://localhost:8081 |
+| **opencart** | OpenCart 3.0.3.x store + admin + **UniSouk `api/unisouk/*` extension** | http://localhost:8081 |
 | **postgres** | App database | internal only |
 | **redis** | Queues / cache | internal only |
 | **opencart-db** | MySQL for OpenCart | internal only |
@@ -175,7 +175,216 @@ In OpenCart admin, create data for later integration tests (IDs go in `docs/SETU
 - **5 products** (Catalog → Products) — at least **one with options/variants**
 - **3 orders** (Sales → Orders) — e.g. pending, for status/sync tests
 
-Native OpenCart 3 API covers **orders** partially; product CRUD and stock APIs are documented as a planned custom extension — see [`docs/opencart-api-notes.md`](docs/opencart-api-notes.md).
+Native OpenCart 3 API covers **orders** partially; product CRUD, order list, and stock APIs are provided by the **UniSouk custom extension** baked into the Docker OpenCart image — see [OpenCart custom extension](#opencart-custom-extension-apiunisouk) below.
+
+### Step 8 — Verify the custom extension (before NestJS)
+
+After login succeeds (step 6), confirm the `api/unisouk/*` routes respond with JSON — not HTML 404 or the install wizard.
+
+```bash
+export OC_BASE="http://localhost:8081"
+export OC_USER="unisouk-api"
+export OC_KEY="YOUR_API_KEY"
+
+export OC_TOKEN=$(curl -s -X POST "$OC_BASE/index.php?route=api/login" \
+  -d "username=$OC_USER" \
+  -d "key=$OC_KEY" | jq -r '.api_token')
+
+curl -s -X POST \
+  "$OC_BASE/index.php?route=api/unisouk/products&api_token=$OC_TOKEN" \
+  -d "page=1" \
+  -d "limit=20"
+```
+
+**Success** — JSON with `"success": true` and `data.products` (array may be empty if no catalog seed yet).
+
+Only after this passes should you test Nest endpoints such as `GET /api/v1/products`.
+
+---
+
+## OpenCart custom extension (`api/unisouk/*`)
+
+OpenCart 3’s **native** catalog API supports login and order read/update (`api/login`, `api/order/info`, `api/order/history`, `api/order/edit`). It does **not** expose product CRUD, paginated order list, or stock management.
+
+The **UniSouk custom PHP extension** fills that gap. It is **built into the Docker OpenCart image** on every `docker compose build` — no manual copy step after clone.
+
+### Why it exists
+
+| Assignment module | Native OC3 API | Custom extension |
+| ----------------- | -------------- | ---------------- |
+| Product list / CRUD / variants | Not available | `api/unisouk/products/*` |
+| Order list + filters | Not available | `api/unisouk/orders` |
+| Stock read / adjust / alerts | Not available | `api/unisouk/stock/*` |
+| Order detail / history / status PATCH | Available | Uses native `api/order/*` (no extension) |
+
+NestJS never calls OpenCart with raw axios from domain modules — all traffic goes through `OpenCartClient` (`src/integrations/opencart/`), which targets the routes below.
+
+### Deployment (Docker)
+
+| Item | Location |
+| ---- | -------- |
+| Extension source | `opencart-extension/catalog/controller/api/unisouk/` |
+| Language files | `opencart-extension/catalog/language/en-gb/api/unisouk/` |
+| Docker build | `docker/opencart/Dockerfile` (extends `aamservices/opencart:3.0.3.6`) |
+| Compose service | `opencart` builds from that Dockerfile (`docker-compose.yml`) |
+| Runtime path (container) | `/var/www/html/catalog/controller/api/unisouk/` |
+
+Rebuild after changing extension PHP:
+
+```bash
+docker compose build opencart
+docker compose up -d opencart
+```
+
+### Authentication
+
+Same session model as native OpenCart API:
+
+1. `POST api/login` with `username` + `key` → receive `api_token`
+2. Pass `api_token` as a **query parameter** on every subsequent call
+3. All extension endpoints use **POST** with `Content-Type: application/x-www-form-urlencoded`
+4. Each controller checks `$this->session->data['api_id']` — unauthenticated calls return a permission error JSON
+
+### Response envelope
+
+```json
+{ "success": true, "data": { ... } }
+{ "error": "message" }
+```
+
+Nest `OpenCartMapper` normalizes these payloads into internal DTOs.
+
+### Extension endpoints (full list)
+
+All routes: `POST {OPENCART_BASE_URL}/index.php?route={route}&api_token={token}`
+
+#### Products — `products.php`
+
+| Route | Method | Body fields | Purpose |
+| ----- | ------ | ----------- | ------- |
+| `api/unisouk/products` | `index()` | `page`, `limit` | Paginated product list |
+| `api/unisouk/products/info` | `info()` | `product_id` | Single product detail |
+| `api/unisouk/products/add` | `add()` | `name`, `model`, `price`, `quantity`, optional `status`, `description` | Create product |
+| `api/unisouk/products/edit` | `edit()` | `product_id` + fields to update | Update product |
+| `api/unisouk/products/delete` | `delete()` | `product_id` | Delete product |
+| `api/unisouk/products/options` | `options()` | `product_id` | List variants (option name, value, `option_value_id`, price modifier, quantity) |
+
+**Product list response shape:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "products": [
+      {
+        "product_id": 42,
+        "name": "Wireless Mouse",
+        "model": "WM-001",
+        "price": 29.99,
+        "quantity": 100,
+        "status": 1,
+        "description": "..."
+      }
+    ],
+    "total": 5
+  }
+}
+```
+
+#### Orders — `orders.php`
+
+| Route | Method | Body fields | Purpose |
+| ----- | ------ | ----------- | ------- |
+| `api/unisouk/orders` | `index()` | `page`, `limit`, optional `order_status_id`, `date_from`, `date_to` | Paginated order list with line items |
+
+Each order includes `products[]` with `order_product_id`, `product_id`, `quantity`, `price`, and `option_value_id` / `option_value_ids` for variant lines.
+
+#### Stock — `stock.php`
+
+| Route | Method | Body fields | Purpose |
+| ----- | ------ | ----------- | ------- |
+| `api/unisouk/stock/info` | `info()` | `product_id`, optional `option_value_id` | Read base or variant quantity |
+| `api/unisouk/stock/edit` | `edit()` | `product_id`, `quantity`, optional `option_value_id` | Set absolute stock level |
+| `api/unisouk/stock/alerts` | `alerts()` | optional `threshold` (default 10) | Products below threshold |
+
+**Stock errors:** setting quantity below zero returns `"Insufficient stock"` (Nest maps this to `INSUFFICIENT_STOCK`).
+
+### Verify extension (curl checklist)
+
+Run from your host against `http://localhost:8081` after steps 1–6 above.
+
+```bash
+export OC_BASE="http://localhost:8081"
+export OC_USER="unisouk-api"
+export OC_KEY="YOUR_API_KEY"
+
+# 1. Login
+curl -s -X POST "$OC_BASE/index.php?route=api/login" \
+  -d "username=$OC_USER" \
+  -d "key=$OC_KEY"
+
+# 2. Save token
+export OC_TOKEN=$(curl -s -X POST "$OC_BASE/index.php?route=api/login" \
+  -d "username=$OC_USER" \
+  -d "key=$OC_KEY" | jq -r '.api_token')
+
+# 3. List products (extension)
+curl -s -X POST \
+  "$OC_BASE/index.php?route=api/unisouk/products&api_token=$OC_TOKEN" \
+  -d "page=1" -d "limit=20"
+
+# 4. Product detail (replace 42 with a real product_id)
+curl -s -X POST \
+  "$OC_BASE/index.php?route=api/unisouk/products/info&api_token=$OC_TOKEN" \
+  -d "product_id=42"
+
+# 5. Variants
+curl -s -X POST \
+  "$OC_BASE/index.php?route=api/unisouk/products/options&api_token=$OC_TOKEN" \
+  -d "product_id=42"
+
+# 6. Stock read
+curl -s -X POST \
+  "$OC_BASE/index.php?route=api/unisouk/stock/info&api_token=$OC_TOKEN" \
+  -d "product_id=42"
+
+# 7. Order list
+curl -s -X POST \
+  "$OC_BASE/index.php?route=api/unisouk/orders&api_token=$OC_TOKEN" \
+  -d "page=1" -d "limit=20"
+
+# 8. Low-stock alerts
+curl -s -X POST \
+  "$OC_BASE/index.php?route=api/unisouk/stock/alerts&api_token=$OC_TOKEN" \
+  -d "threshold=10"
+
+# 9. Native order detail (sanity — no extension)
+curl -s -X POST \
+  "$OC_BASE/index.php?route=api/order/info&api_token=$OC_TOKEN" \
+  -d "order_id=1"
+```
+
+| Check | Pass if |
+| ----- | ------- |
+| Login | JSON contains `api_token` |
+| List products | JSON `"success": true`, not HTML 404 |
+| Permission error | JSON `error` about permission — fix token or IP allowlist |
+| Install wizard HTML | OpenCart not configured — complete [first-time setup](#first-time-opencart-setup-manual-one-time) |
+
+### NestJS mapping (what calls the extension)
+
+| Nest route (JWT) | OpenCart route |
+| ---------------- | -------------- |
+| `GET /api/v1/products` | `api/unisouk/products` |
+| `GET /api/v1/products/:id` | `api/unisouk/products/info` |
+| `POST /api/v1/products` | `api/unisouk/products/add` |
+| `PUT /api/v1/products/:id` | `api/unisouk/products/edit` |
+| `DELETE /api/v1/products/:id` | `api/unisouk/products/delete` |
+| `GET /api/v1/products/:id/variants` | `api/unisouk/products/options` |
+| `GET /api/v1/orders` *(C-18)* | `api/unisouk/orders` |
+| `GET /api/v1/inventory/*` *(C-19)* | `api/unisouk/stock/*` |
+
+Further API contract detail: [`docs/opencart-api-notes.md`](docs/opencart-api-notes.md).
 
 ---
 
@@ -189,7 +398,7 @@ Native OpenCart 3 API covers **orders** partially; product CRUD and stock APIs a
 | Storage move modal | **No** — browser required (once) |
 | API user + IP allowlist | **No** — admin UI required (once) |
 | Product/order seed data | **No** — admin UI (or future seed script) |
-| Custom `api/unisouk/*` PHP extension | **Not yet** — planned in later commits |
+| Custom `api/unisouk/*` PHP extension | **Yes** — baked into OpenCart image via `docker/opencart/Dockerfile` |
 
 ---
 
@@ -252,7 +461,8 @@ yarn test:e2e
 
 | Document | Purpose |
 | -------- | ------- |
-| [`docs/opencart-api-notes.md`](docs/opencart-api-notes.md) | OpenCart version decision, API routes, status IDs, seed plan |
+| [`docs/opencart-api-notes.md`](docs/opencart-api-notes.md) | OpenCart version decision, native vs custom routes, status IDs, seed plan |
+| [`opencart-extension/`](opencart-extension/) | UniSouk PHP extension source (`api/unisouk/*`) |
 | [`docs/UNISOUK_OPENCART_COMMIT_TRACKER.md`](docs/UNISOUK_OPENCART_COMMIT_TRACKER.md) | Commit-by-commit implementation plan |
 | [`docs/UNISOUK_OPENCART_MANUAL_TESTING_PLAN.md`](docs/UNISOUK_OPENCART_MANUAL_TESTING_PLAN.md) | Manual QA after each commit |
 
