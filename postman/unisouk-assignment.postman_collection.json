@@ -1,0 +1,3475 @@
+{
+  "info": {
+    "_postman_id": "3e077407-85cc-4cec-a8bf-12fd2ca2dd5d",
+    "name": "unisouk-assignment",
+    "description": "UniSouk OpenCart Backend assignment API collection (C-28).\n\nPrerequisites:\n- docker compose up -d (app + worker + opencart + postgres + redis)\n- OpenCart API user configured per docs/SETUP.md\n- Orders 1, 2, 3 created in OpenCart admin per docs/SETUP.md\n\nSeed IDs: products 28,29,30,42,49 | orders 1,2,3 | variant option_value_id 15 (Red on product 30).\n\nRun E2E Flow folder sequentially via Collection Runner after fresh pending order 1.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "34714573"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();\r",
+                  "\r",
+                  "if (pm.response.code === 200 && response?.data?.accessToken) {\r",
+                  "    pm.environment.set('accessToken', response.data.accessToken);\r",
+                  "    console.log('accessToken saved to environment');\r",
+                  "} else {\r",
+                  "    console.warn('accessToken not found in response');\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success: 200",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/login",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "",
+              "header": [
+                {
+                  "key": "Content-Security-Policy",
+                  "value": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests"
+                },
+                {
+                  "key": "Cross-Origin-Embedder-Policy",
+                  "value": "require-corp"
+                },
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "261"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"105-NslIsN/YhELn4WaAgP6M/KzNlX8\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 09 Jul 2026 23:33:56 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"statusCode\": 200,\n    \"status\": true,\n    \"data\": {\n        \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInVzZXJuYW1lIjoiYWRtaW4iLCJpYXQiOjE3ODM2NDAwMzYsImV4cCI6MTc4MzcyNjQzNn0.xcB-eSKyeNFszM2Txkd_Y5JnUcfPUgv2oRW4CY4YAN0\"\n    },\n    \"message\": \"Request successful\"\n}"
+            },
+            {
+              "name": "Unauthorized: 401",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{username}} invalid\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/login",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "",
+              "header": [
+                {
+                  "key": "Content-Security-Policy",
+                  "value": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests"
+                },
+                {
+                  "key": "Cross-Origin-Embedder-Policy",
+                  "value": "require-corp"
+                },
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "77"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"4d-lhE2eyaxpx9qc2HDHefUQPXsl3o\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 09 Jul 2026 23:36:34 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"statusCode\": 401,\n    \"status\": false,\n    \"data\": null,\n    \"message\": \"Invalid credentials\"\n}"
+            },
+            {
+              "name": "400: Validation Error",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/login",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "",
+              "header": [
+                {
+                  "key": "Content-Security-Policy",
+                  "value": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests"
+                },
+                {
+                  "key": "Cross-Origin-Embedder-Policy",
+                  "value": "require-corp"
+                },
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "243"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"f3-OnUYbtIlMZmH82o118FsDznpiVU\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 09 Jul 2026 23:36:53 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"statusCode\": 400,\n    \"status\": false,\n    \"data\": [\n        {\n            \"target\": {\n                \"username\": \"\",\n                \"password\": \"Unisouq2026!\"\n            },\n            \"value\": \"\",\n            \"property\": \"username\",\n            \"children\": [],\n            \"constraints\": {\n                \"isNotEmpty\": \"username should not be empty\"\n            }\n        }\n    ],\n    \"message\": \"username should not be empty\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200: Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/health",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "health"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "",
+              "header": [
+                {
+                  "key": "Content-Security-Policy",
+                  "value": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests"
+                },
+                {
+                  "key": "Cross-Origin-Embedder-Policy",
+                  "value": "require-corp"
+                },
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "148"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"94-CVzucsyl/1O3LONgF6aoVJt+uyE\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 09 Jul 2026 23:37:30 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"statusCode\": 200,\n    \"status\": true,\n    \"data\": {\n        \"status\": \"ok\",\n        \"checks\": {\n            \"postgres\": {\n                \"status\": \"up\"\n            },\n            \"redis\": {\n                \"status\": \"up\"\n            }\n        }\n    },\n    \"message\": \"Request successful\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "JWT login and platform health."
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products?page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200: Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/products?page=1&limit=10",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "products"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "",
+              "header": [
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"5145-fSfEB1NKU3uB9hX+V1ULwAfUoMk\""
+                },
+                {
+                  "key": "Content-Encoding",
+                  "value": "br"
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 09 Jul 2026 23:48:31 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"statusCode\": 200,\n    \"status\": true,\n    \"data\": {\n        \"items\": [\n            {\n                \"id\": 42,\n                \"name\": \"Apple Cinema 30&quot;\",\n                \"model\": \"Product 15\",\n                \"price\": 100,\n                \"quantity\": 990,\n                \"status\": true,\n                \"description\": \"&lt;p&gt;\\r\\n\\t&lt;font face=&quot;helvetica,geneva,arial&quot; size=&quot;2&quot;&gt;&lt;font face=&quot;Helvetica&quot; size=&quot;2&quot;&gt;The 30-inch Apple Cinema HD Display delivers an amazing 2560 x 1600 pixel resolution. Designed specifically for the creative professional, this display provides more space for easier access to all the tools and palettes needed to edit, format and composite your work. Combine this display with a Mac Pro, MacBook Pro, or PowerMac G5 and there's no limit to what you can achieve. &lt;br&gt;\\r\\n\\t&lt;br&gt;\\r\\n\\t&lt;/font&gt;&lt;font face=&quot;Helvetica&quot; size=&quot;2&quot;&gt;The Cinema HD features an active-matrix liquid crystal display that produces flicker-free images that deliver twice the brightness, twice the sharpness and twice the contrast ratio of a typical CRT display. Unlike other flat panels, it's designed with a pure digital interface to deliver distortion-free images that never need adjusting. With over 4 million digital pixels, the display is uniquely suited for scientific and technical applications such as visualizing molecular structures or analyzing geological data. &lt;br&gt;\\r\\n\\t&lt;br&gt;\\r\\n\\t&lt;/font&gt;&lt;font face=&quot;Helvetica&quot; size=&quot;2&quot;&gt;Offering accurate, brilliant color performance, the Cinema HD delivers up to 16.7 million colors across a wide gamut allowing you to see subtle nuances between colors from soft pastels to rich jewel tones. A wide viewing angle ensures uniform color from edge to edge. Apple's ColorSync technology allows you to create custom profiles to maintain consistent color onscreen and in print. The result: You can confidently use this display in all your color-critical applications. &lt;br&gt;\\r\\n\\t&lt;br&gt;\\r\\n\\t&lt;/font&gt;&lt;font face=&quot;Helvetica&quot; size=&quot;2&quot;&gt;Housed in a new aluminum design, the display has a very thin bezel that enhances visual accuracy. Each display features two FireWire 400 ports and two USB 2.0 ports, making attachment of desktop peripherals, such as iSight, iPod, digital and still cameras, hard drives, printers and scanners, even more accessible and convenient. Taking advantage of the much thinner and lighter footprint of an LCD, the new displays support the VESA (Video Electronics Standards Association) mounting interface standard. Customers with the optional Cinema Display VESA Mount Adapter kit gain the flexibility to mount their display in locations most appropriate for their work environment. &lt;br&gt;\\r\\n\\t&lt;br&gt;\\r\\n\\t&lt;/font&gt;&lt;font face=&quot;Helvetica&quot; size=&quot;2&quot;&gt;The Cinema HD features a single cable design with elegant breakout for the USB 2.0, FireWire 400 and a pure digital connection using the industry standard Digital Video Interface (DVI) interface. The DVI connection allows for a direct pure-digital connection.&lt;br&gt;\\r\\n\\t&lt;/font&gt;&lt;/font&gt;&lt;/p&gt;\\r\\n&lt;h3&gt;\\r\\n\\tFeatures:&lt;/h3&gt;\\r\\n&lt;p&gt;\\r\\n\\tUnrivaled display performance&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\t30-inch (viewable) active-matrix liquid crystal display provides breathtaking image quality and vivid, richly saturated color.&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tSupport for 2560-by-1600 pixel resolution for display of high definition still and video imagery.&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tWide-format design for simultaneous display of two full pages of text and graphics.&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tIndustry standard DVI connector for direct attachment to Mac- and Windows-based desktops and notebooks&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tIncredibly wide (170 degree) horizontal and vertical viewing angle for maximum visibility and color performance.&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tLightning-fast pixel response for full-motion digital video playback.&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tSupport for 16.7 million saturated colors, for use in all graphics-intensive applications.&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;p&gt;\\r\\n\\tSimple setup and operation&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tSingle cable with elegant breakout for connection to DVI, USB and FireWire ports&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tBuilt-in two-port USB 2.0 hub for easy connection of desktop peripheral devices.&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tTwo FireWire 400 ports to support iSight and other desktop peripherals&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;p&gt;\\r\\n\\tSleek, elegant design&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tHuge virtual workspace, very small footprint.&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tNarrow Bezel design to minimize visual impact of using dual displays&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tUnique hinge design for effortless adjustment&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tSupport for VESA mounting solutions (Apple Cinema Display VESA Mount Adapter sold separately)&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;h3&gt;\\r\\n\\tTechnical specifications&lt;/h3&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;b&gt;Screen size (diagonal viewable image size)&lt;/b&gt;&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tApple Cinema HD Display: 30 inches (29.7-inch viewable)&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;b&gt;Screen type&lt;/b&gt;&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tThin film transistor (TFT) active-matrix liquid crystal display (AMLCD)&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;b&gt;Resolutions&lt;/b&gt;&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\t2560 x 1600 pixels (optimum resolution)&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\t2048 x 1280&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\t1920 x 1200&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\t1280 x 800&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\t1024 x 640&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;b&gt;Display colors (maximum)&lt;/b&gt;&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\t16.7 million&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;b&gt;Viewing angle (typical)&lt;/b&gt;&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\t170° horizontal; 170° vertical&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;b&gt;Brightness (typical)&lt;/b&gt;&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\t30-inch Cinema HD Display: 400 cd/m2&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;b&gt;Contrast ratio (typical)&lt;/b&gt;&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\t700:1&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;b&gt;Response time (typical)&lt;/b&gt;&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\t16 ms&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;b&gt;Pixel pitch&lt;/b&gt;&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\t30-inch Cinema HD Display: 0.250 mm&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;b&gt;Screen treatment&lt;/b&gt;&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tAntiglare hardcoat&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;b&gt;User controls (hardware and software)&lt;/b&gt;&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tDisplay Power,&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tSystem sleep, wake&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tBrightness&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tMonitor tilt&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;b&gt;Connectors and cables&lt;/b&gt;&lt;br&gt;\\r\\n\\tCable&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tDVI (Digital Visual Interface)&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tFireWire 400&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tUSB 2.0&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tDC power (24 V)&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;p&gt;\\r\\n\\tConnectors&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tTwo-port, self-powered USB 2.0 hub&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tTwo FireWire 400 ports&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tKensington security port&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;b&gt;VESA mount adapter&lt;/b&gt;&lt;br&gt;\\r\\n\\tRequires optional Cinema Display VESA Mount Adapter (M9649G/A)&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tCompatible with VESA FDMI (MIS-D, 100, C) compliant mounting solutions&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;b&gt;Electrical requirements&lt;/b&gt;&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tInput voltage: 100-240 VAC 50-60Hz&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tMaximum power when operating: 150W&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tEnergy saver mode: 3W or less&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;b&gt;Environmental requirements&lt;/b&gt;&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tOperating temperature: 50° to 95° F (10° to 35° C)&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tStorage temperature: -40° to 116° F (-40° to 47° C)&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tOperating humidity: 20% to 80% noncondensing&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tMaximum operating altitude: 10,000 feet&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;b&gt;Agency approvals&lt;/b&gt;&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tFCC Part 15 Class B&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tEN55022 Class B&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tEN55024&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tVCCI Class B&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tAS/NZS 3548 Class B&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tCNS 13438 Class B&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tICES-003 Class B&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tISO 13406 part 2&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tMPR II&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tIEC 60950&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tUL 60950&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tCSA 60950&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tEN60950&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tENERGY STAR&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tTCO '03&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;b&gt;Size and weight&lt;/b&gt;&lt;br&gt;\\r\\n\\t30-inch Apple Cinema HD Display&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tHeight: 21.3 inches (54.3 cm)&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tWidth: 27.2 inches (68.8 cm)&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tDepth: 8.46 inches (21.5 cm)&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tWeight: 27.5 pounds (12.5 kg)&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;b&gt;System Requirements&lt;/b&gt;&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tMac Pro, all graphic options&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tMacBook Pro&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tPower Mac G5 (PCI-X) with ATI Radeon 9650 or better or NVIDIA GeForce 6800 GT DDL or better&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tPower Mac G5 (PCI Express), all graphics options&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tPowerBook G4 with dual-link DVI support&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tWindows PC and graphics card that supports DVI ports with dual-link digital bandwidth and VESA DDC standard for plug-and-play setup&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n\"\n            },\n            {\n                \"id\": 30,\n                \"name\": \"Canon EOS 5D\",\n                \"model\": \"Product 3\",\n                \"price\": 100,\n                \"quantity\": 7,\n                \"status\": true,\n                \"description\": \"&lt;p&gt;\\r\\n\\tCanon's press material for the EOS 5D states that it 'defines (a) new D-SLR category', while we're not typically too concerned with marketing talk this particular statement is clearly pretty accurate. The EOS 5D is unlike any previous digital SLR in that it combines a full-frame (35 mm sized) high resolution sensor (12.8 megapixels) with a relatively compact body (slightly larger than the EOS 20D, although in your hand it feels noticeably 'chunkier'). The EOS 5D is aimed to slot in between the EOS 20D and the EOS-1D professional digital SLR's, an important difference when compared to the latter is that the EOS 5D doesn't have any environmental seals. While Canon don't specifically refer to the EOS 5D as a 'professional' digital SLR it will have obvious appeal to professionals who want a high quality digital SLR in a body lighter than the EOS-1D. It will also no doubt appeal to current EOS 20D owners (although lets hope they've not bought too many EF-S lenses...) äë&lt;/p&gt;\\r\\n\"\n            },\n            {\n                \"id\": 47,\n                \"name\": \"HP LP3065\",\n                \"model\": \"Product 21\",\n                \"price\": 100,\n                \"quantity\": 1000,\n                \"status\": true,\n                \"description\": \"&lt;p&gt;\\r\\n\\tStop your co-workers in their tracks with the stunning new 30-inch diagonal HP LP3065 Flat Panel Monitor. This flagship monitor features best-in-class performance and presentation features on a huge wide-aspect screen while letting you work as comfortably as possible - you might even forget you&amp;#39;re at the office&lt;/p&gt;\\r\\n\"\n            },\n            {\n                \"id\": 28,\n                \"name\": \"HTC Touch HD\",\n                \"model\": \"Product 1\",\n                \"price\": 100,\n                \"quantity\": 939,\n                \"status\": true,\n                \"description\": \"&lt;p&gt;\\r\\n\\tHTC Touch - in High Definition. Watch music videos and streaming content in awe-inspiring high definition clarity for a mobile experience you never thought possible. Seductively sleek, the HTC Touch HD provides the next generation of mobile functionality, all at a simple touch. Fully integrated with Windows Mobile Professional 6.1, ultrafast 3.5G, GPS, 5MP camera, plus lots more - all delivered on a breathtakingly crisp 3.8&amp;quot; WVGA touchscreen - you can take control of your mobile world with the HTC Touch HD.&lt;/p&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;strong&gt;Features&lt;/strong&gt;&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tProcessor Qualcomm&amp;reg; MSM 7201A&amp;trade; 528 MHz&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tWindows Mobile&amp;reg; 6.1 Professional Operating System&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tMemory: 512 MB ROM, 288 MB RAM&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tDimensions: 115 mm x 62.8 mm x 12 mm / 146.4 grams&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\t3.8-inch TFT-LCD flat touch-sensitive screen with 480 x 800 WVGA resolution&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tHSDPA/WCDMA: Europe/Asia: 900/2100 MHz; Up to 2 Mbps up-link and 7.2 Mbps down-link speeds&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tQuad-band GSM/GPRS/EDGE: Europe/Asia: 850/900/1800/1900 MHz (Band frequency, HSUPA availability, and data speed are operator dependent.)&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tDevice Control via HTC TouchFLO&amp;trade; 3D &amp;amp; Touch-sensitive front panel buttons&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tGPS and A-GPS ready&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tBluetooth&amp;reg; 2.0 with Enhanced Data Rate and A2DP for wireless stereo headsets&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tWi-Fi&amp;reg;: IEEE 802.11 b/g&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tHTC ExtUSB&amp;trade; (11-pin mini-USB 2.0)&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\t5 megapixel color camera with auto focus&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tVGA CMOS color camera&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tBuilt-in 3.5 mm audio jack, microphone, speaker, and FM radio&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tRing tone formats: AAC, AAC+, eAAC+, AMR-NB, AMR-WB, QCP, MP3, WMA, WAV&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\t40 polyphonic and standard MIDI format 0 and 1 (SMF)/SP MIDI&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tRechargeable Lithium-ion or Lithium-ion polymer 1350 mAh battery&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tExpansion Slot: microSD&amp;trade; memory card (SD 2.0 compatible)&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tAC Adapter Voltage range/frequency: 100 ~ 240V AC, 50/60 Hz DC output: 5V and 1A&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tSpecial Features: FM Radio, G-Sensor&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n\"\n            },\n            {\n                \"id\": 41,\n                \"name\": \"iMac\",\n                \"model\": \"Product 14\",\n                \"price\": 100,\n                \"quantity\": 977,\n                \"status\": true,\n                \"description\": \"&lt;div&gt;\\r\\n\\tJust when you thought iMac had everything, now there&acute;s even more. More powerful Intel Core 2 Duo processors. And more memory standard. Combine this with Mac OS X Leopard and iLife &acute;08, and it&acute;s more all-in-one than ever. iMac packs amazing performance into a stunningly slim space.&lt;/div&gt;\\r\\n\"\n            },\n            {\n                \"id\": 40,\n                \"name\": \"iPhone\",\n                \"model\": \"product 11\",\n                \"price\": 101,\n                \"quantity\": 970,\n                \"status\": true,\n                \"description\": \"&lt;p class=&quot;intro&quot;&gt;\\r\\n\\tiPhone is a revolutionary new mobile phone that allows you to make a call by simply tapping a name or number in your address book, a favorites list, or a call log. It also automatically syncs all your contacts from a PC, Mac, or Internet service. And it lets you select and listen to voicemail messages in whatever order you want just like email.&lt;/p&gt;\\r\\n\"\n            },\n            {\n                \"id\": 48,\n                \"name\": \"iPod Classic\",\n                \"model\": \"product 20\",\n                \"price\": 100,\n                \"quantity\": 995,\n                \"status\": true,\n                \"description\": \"&lt;div class=&quot;cpt_product_description &quot;&gt;\\r\\n\\t&lt;div&gt;\\r\\n\\t\\t&lt;p&gt;\\r\\n\\t\\t\\t&lt;strong&gt;More room to move.&lt;/strong&gt;&lt;/p&gt;\\r\\n\\t\\t&lt;p&gt;\\r\\n\\t\\t\\tWith 80GB or 160GB of storage and up to 40 hours of battery life, the new iPod classic lets you enjoy up to 40,000 songs or up to 200 hours of video or any combination wherever you go.&lt;/p&gt;\\r\\n\\t\\t&lt;p&gt;\\r\\n\\t\\t\\t&lt;strong&gt;Cover Flow.&lt;/strong&gt;&lt;/p&gt;\\r\\n\\t\\t&lt;p&gt;\\r\\n\\t\\t\\tBrowse through your music collection by flipping through album art. Select an album to turn it over and see the track list.&lt;/p&gt;\\r\\n\\t\\t&lt;p&gt;\\r\\n\\t\\t\\t&lt;strong&gt;Enhanced interface.&lt;/strong&gt;&lt;/p&gt;\\r\\n\\t\\t&lt;p&gt;\\r\\n\\t\\t\\tExperience a whole new way to browse and view your music and video.&lt;/p&gt;\\r\\n\\t\\t&lt;p&gt;\\r\\n\\t\\t\\t&lt;strong&gt;Sleeker design.&lt;/strong&gt;&lt;/p&gt;\\r\\n\\t\\t&lt;p&gt;\\r\\n\\t\\t\\tBeautiful, durable, and sleeker than ever, iPod classic now features an anodized aluminum and polished stainless steel enclosure with rounded edges.&lt;/p&gt;\\r\\n\\t&lt;/div&gt;\\r\\n&lt;/div&gt;\\r\\n&lt;!-- cpt_container_end --&gt;\"\n            },\n            {\n                \"id\": 36,\n                \"name\": \"iPod Nano\",\n                \"model\": \"Product 9\",\n                \"price\": 100,\n                \"quantity\": 994,\n                \"status\": true,\n                \"description\": \"&lt;div&gt;\\r\\n\\t&lt;p&gt;\\r\\n\\t\\t&lt;strong&gt;Video in your pocket.&lt;/strong&gt;&lt;/p&gt;\\r\\n\\t&lt;p&gt;\\r\\n\\t\\tIts the small iPod with one very big idea: video. The worlds most popular music player now lets you enjoy movies, TV shows, and more on a two-inch display thats 65% brighter than before.&lt;/p&gt;\\r\\n\\t&lt;p&gt;\\r\\n\\t\\t&lt;strong&gt;Cover Flow.&lt;/strong&gt;&lt;/p&gt;\\r\\n\\t&lt;p&gt;\\r\\n\\t\\tBrowse through your music collection by flipping through album art. Select an album to turn it over and see the track list.&lt;strong&gt;&amp;nbsp;&lt;/strong&gt;&lt;/p&gt;\\r\\n\\t&lt;p&gt;\\r\\n\\t\\t&lt;strong&gt;Enhanced interface.&lt;/strong&gt;&lt;/p&gt;\\r\\n\\t&lt;p&gt;\\r\\n\\t\\tExperience a whole new way to browse and view your music and video.&lt;/p&gt;\\r\\n\\t&lt;p&gt;\\r\\n\\t\\t&lt;strong&gt;Sleek and colorful.&lt;/strong&gt;&lt;/p&gt;\\r\\n\\t&lt;p&gt;\\r\\n\\t\\tWith an anodized aluminum and polished stainless steel enclosure and a choice of five colors, iPod nano is dressed to impress.&lt;/p&gt;\\r\\n\\t&lt;p&gt;\\r\\n\\t\\t&lt;strong&gt;iTunes.&lt;/strong&gt;&lt;/p&gt;\\r\\n\\t&lt;p&gt;\\r\\n\\t\\tAvailable as a free download, iTunes makes it easy to browse and buy millions of songs, movies, TV shows, audiobooks, and games and download free podcasts all at the iTunes Store. And you can import your own music, manage your whole media library, and sync your iPod or iPhone with ease.&lt;/p&gt;\\r\\n&lt;/div&gt;\\r\\n\"\n            },\n            {\n                \"id\": 34,\n                \"name\": \"iPod Shuffle\",\n                \"model\": \"Product 7\",\n                \"price\": 100,\n                \"quantity\": 1000,\n                \"status\": true,\n                \"description\": \"&lt;div&gt;\\r\\n\\t&lt;strong&gt;Born to be worn.&lt;/strong&gt;\\r\\n\\t&lt;p&gt;\\r\\n\\t\\tClip on the worlds most wearable music player and take up to 240 songs with you anywhere. Choose from five colors including four new hues to make your musical fashion statement.&lt;/p&gt;\\r\\n\\t&lt;p&gt;\\r\\n\\t\\t&lt;strong&gt;Random meets rhythm.&lt;/strong&gt;&lt;/p&gt;\\r\\n\\t&lt;p&gt;\\r\\n\\t\\tWith iTunes autofill, iPod shuffle can deliver a new musical experience every time you sync. For more randomness, you can shuffle songs during playback with the slide of a switch.&lt;/p&gt;\\r\\n\\t&lt;strong&gt;Everything is easy.&lt;/strong&gt;\\r\\n\\t&lt;p&gt;\\r\\n\\t\\tCharge and sync with the included USB dock. Operate the iPod shuffle controls with one hand. Enjoy up to 12 hours straight of skip-free music playback.&lt;/p&gt;\\r\\n&lt;/div&gt;\\r\\n\"\n            },\n            {\n                \"id\": 32,\n                \"name\": \"iPod Touch\",\n                \"model\": \"Product 5\",\n                \"price\": 100,\n                \"quantity\": 999,\n                \"status\": true,\n                \"description\": \"&lt;p&gt;\\r\\n\\t&lt;strong&gt;Revolutionary multi-touch interface.&lt;/strong&gt;&lt;br /&gt;\\r\\n\\tiPod touch features the same multi-touch screen technology as iPhone. Pinch to zoom in on a photo. Scroll through your songs and videos with a flick. Flip through your library by album artwork with Cover Flow.&lt;/p&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;strong&gt;Gorgeous 3.5-inch widescreen display.&lt;/strong&gt;&lt;br /&gt;\\r\\n\\tWatch your movies, TV shows, and photos come alive with bright, vivid color on the 320-by-480-pixel display.&lt;/p&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;strong&gt;Music downloads straight from iTunes.&lt;/strong&gt;&lt;br /&gt;\\r\\n\\tShop the iTunes Wi-Fi Music Store from anywhere with Wi-Fi.1 Browse or search to find the music youre looking for, preview it, and buy it with just a tap.&lt;/p&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;strong&gt;Surf the web with Wi-Fi.&lt;/strong&gt;&lt;br /&gt;\\r\\n\\tBrowse the web using Safari and watch YouTube videos on the first iPod with Wi-Fi built in&lt;br /&gt;\\r\\n\\t&amp;nbsp;&lt;/p&gt;\\r\\n\"\n            }\n        ],\n        \"total\": 19,\n        \"page\": 1,\n        \"limit\": 10\n    },\n    \"message\": \"Request successful\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/{{product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "{{product_id}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success: 200",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/products/{{product_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "products",
+                    "{{product_id}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "",
+              "header": [
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"b13-7iOrvd09LflKUxB9JLpFUJl8oIg\""
+                },
+                {
+                  "key": "Content-Encoding",
+                  "value": "br"
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 09 Jul 2026 23:49:33 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"statusCode\": 200,\n    \"status\": true,\n    \"data\": {\n        \"id\": 28,\n        \"name\": \"HTC Touch HD\",\n        \"model\": \"Product 1\",\n        \"price\": 100,\n        \"quantity\": 939,\n        \"status\": true,\n        \"description\": \"&lt;p&gt;\\r\\n\\tHTC Touch - in High Definition. Watch music videos and streaming content in awe-inspiring high definition clarity for a mobile experience you never thought possible. Seductively sleek, the HTC Touch HD provides the next generation of mobile functionality, all at a simple touch. Fully integrated with Windows Mobile Professional 6.1, ultrafast 3.5G, GPS, 5MP camera, plus lots more - all delivered on a breathtakingly crisp 3.8&amp;quot; WVGA touchscreen - you can take control of your mobile world with the HTC Touch HD.&lt;/p&gt;\\r\\n&lt;p&gt;\\r\\n\\t&lt;strong&gt;Features&lt;/strong&gt;&lt;/p&gt;\\r\\n&lt;ul&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tProcessor Qualcomm&amp;reg; MSM 7201A&amp;trade; 528 MHz&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tWindows Mobile&amp;reg; 6.1 Professional Operating System&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tMemory: 512 MB ROM, 288 MB RAM&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tDimensions: 115 mm x 62.8 mm x 12 mm / 146.4 grams&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\t3.8-inch TFT-LCD flat touch-sensitive screen with 480 x 800 WVGA resolution&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tHSDPA/WCDMA: Europe/Asia: 900/2100 MHz; Up to 2 Mbps up-link and 7.2 Mbps down-link speeds&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tQuad-band GSM/GPRS/EDGE: Europe/Asia: 850/900/1800/1900 MHz (Band frequency, HSUPA availability, and data speed are operator dependent.)&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tDevice Control via HTC TouchFLO&amp;trade; 3D &amp;amp; Touch-sensitive front panel buttons&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tGPS and A-GPS ready&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tBluetooth&amp;reg; 2.0 with Enhanced Data Rate and A2DP for wireless stereo headsets&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tWi-Fi&amp;reg;: IEEE 802.11 b/g&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tHTC ExtUSB&amp;trade; (11-pin mini-USB 2.0)&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\t5 megapixel color camera with auto focus&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tVGA CMOS color camera&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tBuilt-in 3.5 mm audio jack, microphone, speaker, and FM radio&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tRing tone formats: AAC, AAC+, eAAC+, AMR-NB, AMR-WB, QCP, MP3, WMA, WAV&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\t40 polyphonic and standard MIDI format 0 and 1 (SMF)/SP MIDI&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tRechargeable Lithium-ion or Lithium-ion polymer 1350 mAh battery&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tExpansion Slot: microSD&amp;trade; memory card (SD 2.0 compatible)&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tAC Adapter Voltage range/frequency: 100 ~ 240V AC, 50/60 Hz DC output: 5V and 1A&lt;/li&gt;\\r\\n\\t&lt;li&gt;\\r\\n\\t\\tSpecial Features: FM Radio, G-Sensor&lt;/li&gt;\\r\\n&lt;/ul&gt;\\r\\n\",\n        \"variants\": []\n    },\n    \"message\": \"Request successful\"\n}"
+            },
+            {
+              "name": "404: Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/products/{{product_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "products",
+                    "{{product_id}}"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "",
+              "header": [
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "75"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"4b-cbAbPPw6809GTRR/Vkak2t6Diwk\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 09 Jul 2026 23:50:04 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"statusCode\": 404,\n    \"status\": false,\n    \"data\": null,\n    \"message\": \"Product not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Product Variants",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/{{variant_product_id}}/variants",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "{{variant_product_id}}",
+                "variants"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200: Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/products/{{variant_product_id}}/variants",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "products",
+                    "{{variant_product_id}}",
+                    "variants"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "",
+              "header": [
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "313"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"139-41K2t1z1SHBEk6TMntgAMVP0/64\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 09 Jul 2026 23:52:18 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"statusCode\": 200,\n    \"status\": true,\n    \"data\": [\n        {\n            \"productId\": 30,\n            \"optionId\": 5,\n            \"optionName\": \"Select\",\n            \"optionValueId\": 15,\n            \"valueName\": \"Red\",\n            \"priceModifier\": 0,\n            \"quantity\": 2\n        },\n        {\n            \"productId\": 30,\n            \"optionId\": 5,\n            \"optionName\": \"Select\",\n            \"optionValueId\": 16,\n            \"valueName\": \"Blue\",\n            \"priceModifier\": 0,\n            \"quantity\": 5\n        }\n    ],\n    \"message\": \"Request successful\"\n}"
+            },
+            {
+              "name": "404: Product Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/products/{{variant_product_id}}/variants",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "products",
+                    "{{variant_product_id}}",
+                    "variants"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "",
+              "header": [
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "75"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"4b-cbAbPPw6809GTRR/Vkak2t6Diwk\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 09 Jul 2026 23:52:32 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"statusCode\": 404,\n    \"status\": false,\n    \"data\": null,\n    \"message\": \"Product not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Product (simple)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();\r",
+                  "\r",
+                  "if (pm.response.code === 201 && response?.data?.id != null) {\r",
+                  "    pm.environment.set('created_product_id', String(response.data.id));\r",
+                  "    console.log('created_product_id saved:', response.data.id);\r",
+                  "} else {\r",
+                  "    console.warn('Product id not found in response');\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Test Mouse\",\n  \"model\": \"PTM-001\",\n  \"price\": 19.99,\n  \"quantity\": 50,\n  \"status\": true,\n  \"description\": \"Created by Postman collection\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "201: Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Test Mouse\",\n  \"model\": \"PTM-001\",\n  \"price\": 19.99,\n  \"quantity\": 50,\n  \"status\": true,\n  \"description\": \"Created by Postman collection\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/products",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "products"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "",
+              "header": [
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "228"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"e4-wrLZ1rrj7habpnYGPAu0BePO3o0\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 09 Jul 2026 23:53:00 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"statusCode\": 201,\n    \"status\": true,\n    \"data\": {\n        \"id\": 50,\n        \"name\": \"Postman Test Mouse\",\n        \"model\": \"PTM-001\",\n        \"price\": 19.99,\n        \"quantity\": 50,\n        \"status\": true,\n        \"description\": \"Created by Postman collection\",\n        \"variants\": []\n    },\n    \"message\": \"Request successful\"\n}"
+            },
+            {
+              "name": "400: Validation Error",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"\",\n  \"model\": \"PTM-001\",\n  \"price\": 19.99,\n  \"quantity\": 50,\n  \"status\": true,\n  \"description\": \"Created by Postman collection\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/products",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "products"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "",
+              "header": [
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "307"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"133-IwP7Gw4i/HnslStFKHqLyZ7nPe4\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 09 Jul 2026 23:53:17 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"statusCode\": 400,\n    \"status\": false,\n    \"data\": [\n        {\n            \"target\": {\n                \"name\": \"\",\n                \"model\": \"PTM-001\",\n                \"price\": 19.99,\n                \"quantity\": 50,\n                \"status\": true,\n                \"description\": \"Created by Postman collection\"\n            },\n            \"value\": \"\",\n            \"property\": \"name\",\n            \"children\": [],\n            \"constraints\": {\n                \"isNotEmpty\": \"name should not be empty\"\n            }\n        }\n    ],\n    \"message\": \"name should not be empty\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Product (with variants)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Test Shirt\",\n  \"model\": \"PTS-001\",\n  \"price\": 24.99,\n  \"quantity\": 0,\n  \"status\": true,\n  \"options\": [\n    {\n      \"name\": \"Size\",\n      \"type\": \"select\",\n      \"values\": [\n        { \"name\": \"Small\", \"quantity\": 10, \"priceModifier\": 0 },\n        { \"name\": \"Large\", \"quantity\": 5, \"priceModifier\": 2 }\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "201: Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Test Shirt\",\n  \"model\": \"PTS-001\",\n  \"price\": 24.99,\n  \"quantity\": 0,\n  \"status\": true,\n  \"options\": [\n    {\n      \"name\": \"Size\",\n      \"type\": \"select\",\n      \"values\": [\n        { \"name\": \"Small\", \"quantity\": 10, \"priceModifier\": 0 },\n        { \"name\": \"Large\", \"quantity\": 5, \"priceModifier\": 2 }\n      ]\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/products",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "products"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "",
+              "header": [
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "423"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"1a7-c+5vKUFNa7PzWcXLId63yu1ztfU\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 09 Jul 2026 23:53:50 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"statusCode\": 201,\n    \"status\": true,\n    \"data\": {\n        \"id\": 51,\n        \"name\": \"Postman Test Shirt\",\n        \"model\": \"PTS-001\",\n        \"price\": 24.99,\n        \"quantity\": 0,\n        \"status\": true,\n        \"variants\": [\n            {\n                \"productId\": 51,\n                \"optionId\": 11,\n                \"optionName\": \"Size\",\n                \"optionValueId\": 17,\n                \"valueName\": \"Small\",\n                \"priceModifier\": 0,\n                \"quantity\": 10\n            },\n            {\n                \"productId\": 51,\n                \"optionId\": 11,\n                \"optionName\": \"Size\",\n                \"optionValueId\": 18,\n                \"valueName\": \"Large\",\n                \"priceModifier\": 2,\n                \"quantity\": 5\n            }\n        ]\n    },\n    \"message\": \"Request successful\"\n}"
+            },
+            {
+              "name": "400: Validation Error",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Test Shirt\",\n  \"model\": \"PTS-001\",\n  \"price\": 24.99,\n  \"quantity\": 0,\n  \"status\": true,\n  \"options\": [\n    {\n      \"name\": \"\",\n      \"type\": \"select\",\n      \"values\": [\n        { \"name\": \"Small\", \"quantity\": 10, \"priceModifier\": 0 },\n        { \"name\": \"Large\", \"quantity\": 5, \"priceModifier\": 2 }\n      ]\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/products",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "products"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "",
+              "header": [
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"41a-8Xer69vTdVuats8eV+YtiaIC1C8\""
+                },
+                {
+                  "key": "Content-Encoding",
+                  "value": "br"
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 09 Jul 2026 23:54:31 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"statusCode\": 400,\n    \"status\": false,\n    \"data\": [\n        {\n            \"target\": {\n                \"name\": \"Postman Test Shirt\",\n                \"model\": \"PTS-001\",\n                \"price\": 24.99,\n                \"quantity\": 0,\n                \"status\": true,\n                \"options\": [\n                    {\n                        \"name\": \"\",\n                        \"type\": \"select\",\n                        \"values\": [\n                            {\n                                \"name\": \"Small\",\n                                \"priceModifier\": 0,\n                                \"quantity\": 10\n                            },\n                            {\n                                \"name\": \"Large\",\n                                \"priceModifier\": 2,\n                                \"quantity\": 5\n                            }\n                        ]\n                    }\n                ]\n            },\n            \"value\": [\n                {\n                    \"name\": \"\",\n                    \"type\": \"select\",\n                    \"values\": [\n                        {\n                            \"name\": \"Small\",\n                            \"priceModifier\": 0,\n                            \"quantity\": 10\n                        },\n                        {\n                            \"name\": \"Large\",\n                            \"priceModifier\": 2,\n                            \"quantity\": 5\n                        }\n                    ]\n                }\n            ],\n            \"property\": \"options\",\n            \"children\": [\n                {\n                    \"target\": [\n                        {\n                            \"name\": \"\",\n                            \"type\": \"select\",\n                            \"values\": [\n                                {\n                                    \"name\": \"Small\",\n                                    \"priceModifier\": 0,\n                                    \"quantity\": 10\n                                },\n                                {\n                                    \"name\": \"Large\",\n                                    \"priceModifier\": 2,\n                                    \"quantity\": 5\n                                }\n                            ]\n                        }\n                    ],\n                    \"value\": {\n                        \"name\": \"\",\n                        \"type\": \"select\",\n                        \"values\": [\n                            {\n                                \"name\": \"Small\",\n                                \"priceModifier\": 0,\n                                \"quantity\": 10\n                            },\n                            {\n                                \"name\": \"Large\",\n                                \"priceModifier\": 2,\n                                \"quantity\": 5\n                            }\n                        ]\n                    },\n                    \"property\": \"0\",\n                    \"children\": [\n                        {\n                            \"target\": {\n                                \"name\": \"\",\n                                \"type\": \"select\",\n                                \"values\": [\n                                    {\n                                        \"name\": \"Small\",\n                                        \"priceModifier\": 0,\n                                        \"quantity\": 10\n                                    },\n                                    {\n                                        \"name\": \"Large\",\n                                        \"priceModifier\": 2,\n                                        \"quantity\": 5\n                                    }\n                                ]\n                            },\n                            \"value\": \"\",\n                            \"property\": \"name\",\n                            \"children\": [],\n                            \"constraints\": {\n                                \"isNotEmpty\": \"name should not be empty\"\n                            }\n                        }\n                    ]\n                }\n            ]\n        }\n    ],\n    \"message\": \"\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Test Mouse (updated)\",\n  \"model\": \"PTM-001\",\n  \"price\": 21.99,\n  \"quantity\": 55\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/products/{{created_product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "{{created_product_id}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200: Updated",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Test Mouse (updated)\",\n  \"model\": \"PTM-001\",\n  \"price\": 21.99,\n  \"quantity\": 55\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/products/{{created_product_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "products",
+                    "{{created_product_id}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "",
+              "header": [
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "224"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"e0-cXaLO/7KIB1LY+BMJkEwgEtr+oE\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 09 Jul 2026 23:57:42 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"statusCode\": 200,\n    \"status\": true,\n    \"data\": {\n        \"id\": 53,\n        \"name\": \"Postman Test Mouse (updated)\",\n        \"model\": \"PTM-001\",\n        \"price\": 21.99,\n        \"quantity\": 55,\n        \"status\": true,\n        \"description\": \"Created by Postman collection\"\n    },\n    \"message\": \"Request successful\"\n}"
+            },
+            {
+              "name": "404: Not Found",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Test Mouse (updated)\",\n  \"model\": \"PTM-001\",\n  \"price\": 21.99,\n  \"quantity\": 55\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/products/{{created_product_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "products",
+                    "{{created_product_id}}"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "",
+              "header": [
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "75"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"4b-cbAbPPw6809GTRR/Vkak2t6Diwk\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 09 Jul 2026 23:58:01 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"statusCode\": 404,\n    \"status\": false,\n    \"data\": null,\n    \"message\": \"Product not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/{{created_product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "{{created_product_id}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200: Deleted",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/products/{{created_product_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "products",
+                    "{{created_product_id}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "",
+              "header": [
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "75"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"4b-Q/mDR3WRMvhriFF5Dk0Kc4Z88k4\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 09 Jul 2026 23:59:19 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"statusCode\": 200,\n    \"status\": true,\n    \"data\": null,\n    \"message\": \"Request successful\"\n}"
+            },
+            {
+              "name": "404: Not Found",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/products/{{created_product_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "products",
+                    "{{created_product_id}}"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "",
+              "header": [
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "75"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"4b-cbAbPPw6809GTRR/Vkak2t6Diwk\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 09 Jul 2026 23:59:40 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"statusCode\": 404,\n    \"status\": false,\n    \"data\": null,\n    \"message\": \"Product not found\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Module 1 — CRUD + variants. Seed product {{product_id}} = 28."
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "List Orders (pending)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/orders?status=pending&page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order by ID (E2E)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/orders/{{order_id_e2e}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "{{order_id_e2e}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/orders/{{order_id_e2e}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "orders",
+                    "{{order_id_e2e}}"
+                  ]
+                }
+              },
+              "status": "Bad Gateway",
+              "code": 502,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "92"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"5c-Dq6PBUmn3VlPK+DCZCqpvuWVthc\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Fri, 10 Jul 2026 00:07:26 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"statusCode\": 502,\n    \"status\": false,\n    \"data\": null,\n    \"message\": \"Warning: Order could not be found!\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Order by ID (variant)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/orders/{{order_id_variant}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "{{order_id_variant}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/orders/{{order_id_variant}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "orders",
+                    "{{order_id_variant}}"
+                  ]
+                }
+              },
+              "status": "Bad Gateway",
+              "code": 502,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "92"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"5c-Dq6PBUmn3VlPK+DCZCqpvuWVthc\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Fri, 10 Jul 2026 00:07:49 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"statusCode\": 502,\n    \"status\": false,\n    \"data\": null,\n    \"message\": \"Warning: Order could not be found!\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Status to Processing",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"processing\",\n  \"comment\": \"Postman test — trigger async inventory sync\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/{{order_id_e2e}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "{{order_id_e2e}}",
+                "status"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Not Found",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"processing\",\n  \"comment\": \"Postman test — trigger async inventory sync\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/orders/{{order_id_e2e}}/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "orders",
+                    "{{order_id_e2e}}",
+                    "status"
+                  ]
+                }
+              },
+              "status": "Bad Gateway",
+              "code": 502,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin, Accept-Encoding"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "92"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"5c-Dq6PBUmn3VlPK+DCZCqpvuWVthc\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Fri, 10 Jul 2026 00:08:05 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"statusCode\": 502,\n    \"status\": false,\n    \"data\": null,\n    \"message\": \"Warning: Order could not be found!\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Module 2 — list, detail, status PATCH. Uses seeded orders 1–3."
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "List Inventory",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/inventory?page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "inventory"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Inventory by Product ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/inventory/{{product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "inventory",
+                "{{product_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Variant Stock",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/inventory/{{variant_product_id}}?optionValueId={{option_value_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "inventory",
+                "{{variant_product_id}}"
+              ],
+              "query": [
+                {
+                  "key": "optionValueId",
+                  "value": "{{option_value_id}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Low Stock Alerts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/inventory/alerts",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "inventory",
+                "alerts"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Adjust Inventory (+1)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adjustment\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/inventory/{{product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "inventory",
+                "{{product_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Adjust Inventory (-1)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adjustment\": -1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/inventory/{{product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "inventory",
+                "{{product_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Module 3 — read, adjust, alerts."
+    },
+    {
+      "name": "E2E Flow",
+      "item": [
+        {
+          "name": "1 — Login",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2 — Snapshot stock product 28",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/inventory/{{product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "inventory",
+                "{{product_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3 — Snapshot stock product 29",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/inventory/{{product_id_multi}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "inventory",
+                "{{product_id_multi}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4 — Verify order line items",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/orders/{{order_id_e2e}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "{{order_id_e2e}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5 — PATCH status to processing",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"processing\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/{{order_id_e2e}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "{{order_id_e2e}}",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6 — Wait for async sync",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/inventory/{{product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "inventory",
+                "{{product_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "7 — Verify product 29 decremented",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/inventory/{{product_id_multi}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "inventory",
+                "{{product_id_multi}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Assignment core flow: order {{order_id_e2e}} pending → processing → async stock deduct.\nRun folder sequentially. Requires worker container running and order 1 in pending status."
+    },
+    {
+      "name": "Error Cases",
+      "item": [
+        {
+          "name": "401 — Unauthorized (no token)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "404 — Product not found",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/99999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "99999"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "404 — Order not found",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/orders/99999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "99999"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "400 — Invalid status transition",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"pending\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/{{order_id_e2e}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "{{order_id_e2e}}",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "400 — Insufficient stock (manual adjust)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adjustment\": -1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/inventory/{{zero_stock_product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "inventory",
+                "{{zero_stock_product_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "400 — Insufficient stock (sync)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"processing\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/{{order_id_insufficient}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "{{order_id_insufficient}}",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Negative paths — assert C-API-ENVELOPE error shape { statusCode, status: false, data, message }."
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000/api/v1",
+      "description": "Nest API base URL"
+    },
+    {
+      "key": "health_url",
+      "value": "http://localhost:3000/health",
+      "description": "Health probe (no /api/v1 prefix)"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "description": "JWT from Login — auto-set by Auth folder"
+    },
+    {
+      "key": "username",
+      "value": "admin",
+      "description": "Nest API login username (dev default)"
+    },
+    {
+      "key": "password",
+      "value": "admin123",
+      "description": "Nest API login password (dev default)"
+    },
+    {
+      "key": "product_id",
+      "value": "28",
+      "description": "USQ-P001 HTC Touch HD — simple product"
+    },
+    {
+      "key": "product_id_multi",
+      "value": "29",
+      "description": "USQ-P003 Palm Treo Pro — multi-line orders"
+    },
+    {
+      "key": "variant_product_id",
+      "value": "30",
+      "description": "USQ-P002 Canon EOS 5D — variant product"
+    },
+    {
+      "key": "option_value_id",
+      "value": "15",
+      "description": "Red variant on product 30"
+    },
+    {
+      "key": "zero_stock_product_id",
+      "value": "49",
+      "description": "USQ-P005 Samsung Tab — zero stock"
+    },
+    {
+      "key": "multi_option_product_id",
+      "value": "42",
+      "description": "USQ-P004 Apple Cinema 30\""
+    },
+    {
+      "key": "order_id_e2e",
+      "value": "1",
+      "description": "USQ-O001 — E2E stock deduct (2x28, 1x29)"
+    },
+    {
+      "key": "order_id_variant",
+      "value": "2",
+      "description": "USQ-O002 — variant deduct (1x30 Red)"
+    },
+    {
+      "key": "order_id_insufficient",
+      "value": "3",
+      "description": "USQ-O003 — insufficient stock (5x30 Red)"
+    },
+    {
+      "key": "opencart_url",
+      "value": "http://localhost:8081",
+      "description": "OpenCart storefront URL"
+    },
+    {
+      "key": "created_product_id",
+      "value": "",
+      "description": "Set by Create Product for cleanup"
+    },
+    {
+      "key": "inventory_28_before",
+      "value": "",
+      "description": "E2E snapshot — product 28 qty before sync"
+    },
+    {
+      "key": "inventory_29_before",
+      "value": "",
+      "description": "E2E snapshot — product 29 qty before sync"
+    }
+  ]
+}
