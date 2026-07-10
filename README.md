@@ -1,20 +1,70 @@
 # UniSouk OpenCart Backend
 
-NestJS backend for the **UniSouk Lead Backend Assignment**. It exposes a JWT-protected REST API under `/api/v1`, persists operational data (sync jobs, audit logs) in PostgreSQL, uses Redis + BullMQ for async inventory deduction, and integrates with **OpenCart 3.x** for catalog, orders, and stock.
+NestJS backend for the **UniSouk Lead Backend Assignment** (Backend Lead Developer). It connects to a running **OpenCart 3.x** store, exposes a JWT-protected REST API under `/api/v1`, and manages **Products**, **Orders**, and **Inventory** with **asynchronous real-time stock sync** when orders move to `processing`.
 
-**Live deployment:** _Set your VPS public IP after deploy — see [docs/DEPLOY.md](docs/DEPLOY.md)_
+**Live deployment:** http://187.127.143.11:3002
 
 | Resource | Local (Docker) | Production (VPS) |
 | -------- | -------------- | ---------------- |
-| API base | http://localhost:3000/api/v1 | `http://<PUBLIC_IP>:3002/api/v1` |
-| Swagger UI | http://localhost:3000/api | `http://<PUBLIC_IP>:3002/api` |
-| Health | http://localhost:3000/health | `http://<PUBLIC_IP>:3002/health` |
-| OpenCart storefront | http://localhost:8081 | `http://<PUBLIC_IP>:8081` |
-| OpenCart admin | http://localhost:8081/admin | `http://<PUBLIC_IP>:8081/admin` |
+| API base | http://localhost:3000/api/v1 | http://187.127.143.11:3002/api/v1 |
+| Swagger UI | http://localhost:3000/api | http://187.127.143.11:3002/api |
+| Health | http://localhost:3000/health | http://187.127.143.11:3002/health |
+| OpenCart storefront | http://localhost:8081 | http://187.127.143.11:8081 |
+| OpenCart admin | http://localhost:8081/admin | http://187.127.143.11:8081/admin |
+
+**One-command local start:** `docker compose up -d --build`
+
+---
+
+## Assignment deliverables (§6)
+
+This repository satisfies the assignment submission checklist:
+
+| § | Requirement | Location |
+| - | ----------- | -------- |
+| **6.1** | NestJS + TypeScript codebase | `src/` |
+| **6.1** | `docker-compose up --build` full stack | [`docker-compose.yml`](docker-compose.yml) |
+| **6.1** | `.env.example` with all variables | [`.env.example`](.env.example) |
+| **6.1** | Unit tests for ≥2 core services | `orders.service.spec.ts`, `inventory-sync.service.spec.ts` |
+| **6.1** | Swagger at `/api` | http://localhost:3000/api |
+| **6.2** | Postman collection v2.1 + env vars + E2E + errors | [`docs/unisouk-assignment.postman_collection.json`](docs/unisouk-assignment.postman_collection.json) |
+| **6.3** | README with architecture, setup, sync, tests, limitations | this file |
+| **6.4** | OpenCart instance details + seeded products/orders | [`docs/SETUP.md`](docs/SETUP.md) |
+| **6.5** | AI tool usage disclosure | [below](#ai-tool-usage-disclosure) |
+| — | Live hosted API for testing | http://187.127.143.11:3002 |
+
+---
+
+## What you need to build (assignment summary)
+
+| Module | Capabilities |
+| ------ | ------------ |
+| **Products** | List, get, create, update, delete; expose option/variant details (name, values, price modifier, stock) |
+| **Orders** | List with status/date filters, detail with line items, PATCH status with valid transitions |
+| **Inventory** | Read all/single stock, manual adjust, low-stock alerts, **async deduct on order → processing** |
+
+The inventory sync is the critical path: status change is synchronous; stock deduction runs in a **BullMQ worker** so the HTTP response is never blocked.
+
+---
+
+## Tech stack
+
+| Layer | Choice |
+| ----- | ------ |
+| Framework | NestJS 11 + TypeScript |
+| OpenCart | 3.0.3.x (Docker) + custom `api/unisouk/*` PHP extension |
+| App database | PostgreSQL + Knex/Objection (sync jobs, audit logs only) |
+| OpenCart database | MySQL (catalog, orders, stock — system of record) |
+| Async queue | BullMQ + Redis |
+| Auth | JWT (`POST /api/v1/auth/login`) |
+| API docs | Swagger at `/api` |
+| Tests | Jest (unit + e2e smoke) |
 
 ---
 
 ## Architecture
+
+### System overview
 
 ```mermaid
 flowchart TB
@@ -60,7 +110,36 @@ flowchart TB
   OC --> MySQL
 ```
 
-### Module layout
+### Module boundaries
+
+```mermaid
+flowchart LR
+  subgraph modules [Domain modules]
+    P[ProductsModule]
+    O[OrdersModule]
+    I[InventoryModule]
+  end
+
+  subgraph integration [Integration layer]
+    OC[OpenCartClient]
+    Auth[OpenCartAuthService]
+    Map[OpenCartMapper]
+  end
+
+  subgraph async [Async]
+    Q[InventorySyncQueueProducer]
+    W[InventorySyncProcessor]
+    S[InventorySyncService]
+  end
+
+  P --> OC
+  O --> OC
+  O --> Q
+  I --> OC
+  Q --> W --> S --> OC
+  OC --> Auth
+  OC --> Map
+```
 
 | Path | Responsibility |
 | ---- | -------------- |
@@ -73,6 +152,49 @@ flowchart TB
 | `src/worker.ts` | Separate Nest bootstrap for the BullMQ worker process |
 
 Domain modules never call axios directly — all OpenCart traffic goes through `OpenCartClient`.
+
+### Order status transitions
+
+Enforced in the API before OpenCart is updated. Only **`processing`** triggers inventory sync.
+
+```mermaid
+stateDiagram-v2
+  [*] --> pending
+  pending --> processing : PATCH (triggers sync)
+  pending --> cancelled
+  processing --> shipped
+  processing --> cancelled
+  shipped --> complete
+  complete --> [*]
+  cancelled --> [*]
+```
+
+| From | Allowed to |
+| ---- | ---------- |
+| `pending` | `processing`, `cancelled` |
+| `processing` | `shipped`, `cancelled` |
+| `shipped` | `complete` |
+| `complete`, `cancelled` | _(terminal)_ |
+
+### Scalable worker deployment
+
+The inventory sync worker runs as a **separate process** (`worker` service / `yarn start:worker`), sharing the codebase but not the HTTP server. You can scale it independently:
+
+```mermaid
+flowchart LR
+  API[app x1]
+  Redis[(Redis)]
+  W1[worker x1]
+  W2[worker x2]
+  W3[worker xN]
+
+  API --> Redis
+  Redis --> W1 & W2 & W3
+```
+
+```bash
+docker compose up -d --scale worker=3
+```
 
 ---
 
@@ -90,13 +212,71 @@ When an order moves to **`processing`**, stock must be deducted in OpenCart **as
 2. Stock deduction may involve multiple line items, retries, and partial progress.
 3. Failures (e.g. insufficient stock) must be recorded without blocking the HTTP response.
 
+**Alternatives considered:**
+
+| Option | Why not chosen (for this scope) |
+| ------ | ------------------------------- |
+| Synchronous deduct in PATCH handler | Blocks HTTP; violates assignment async requirement |
+| NestJS EventEmitter | In-process only; no persistence, retries, or horizontal worker scaling |
+| RabbitMQ / Kafka | Heavier ops for a single assignment deploy; BullMQ + Redis already in stack |
+| **BullMQ + Redis** | Retries, backoff, job visibility, separate worker process, scales with `--scale worker=N` |
+
 **Flow:** `OrdersService.updateStatus` → insert `inventory_sync_jobs` row → `InventorySyncQueueProducer.enqueue(orderId)` → BullMQ job → `InventorySyncProcessor` → `InventorySyncService.processOrder` → OpenCart `api/unisouk/stock/edit` per line item + `inventory_audit_logs` writes.
 
 The **worker** runs as a separate Docker service (`worker`) sharing the same codebase as `app` but without the HTTP server — only queue consumers.
 
 ---
 
-## Inventory sync (end-to-end)
+## REST API overview
+
+All business routes require `Authorization: Bearer <token>` except `POST /api/v1/auth/login`.
+
+### Auth
+
+| Method | Route | Description |
+| ------ | ----- | ----------- |
+| POST | `/api/v1/auth/login` | Returns JWT (`data.accessToken`) |
+
+### Module 1 — Products
+
+| Method | Route | Description |
+| ------ | ----- | ----------- |
+| GET | `/api/v1/products` | List products (`page`, `limit`) |
+| GET | `/api/v1/products/:id` | Product detail + variants |
+| POST | `/api/v1/products` | Create product in OpenCart |
+| PUT | `/api/v1/products/:id` | Update product |
+| DELETE | `/api/v1/products/:id` | Delete product |
+| GET | `/api/v1/products/:id/variants` | Variant listing (option name, value, price modifier, qty) |
+
+### Module 2 — Orders
+
+| Method | Route | Description |
+| ------ | ----- | ----------- |
+| GET | `/api/v1/orders` | List orders (`status`, `dateFrom`, `dateTo`, `page`, `limit`) |
+| GET | `/api/v1/orders/:id` | Order detail + line items |
+| PATCH | `/api/v1/orders/:id/status` | Update status; enqueues sync when → `processing` |
+
+### Module 3 — Inventory
+
+| Method | Route | Description |
+| ------ | ----- | ----------- |
+| GET | `/api/v1/inventory` | All stock levels (paginated) |
+| GET | `/api/v1/inventory/:productId` | Single product (+ variant stock) |
+| PATCH | `/api/v1/inventory/:productId` | Manual adjust `{ quantity, optionValueId? }` |
+| GET | `/api/v1/inventory/alerts` | Products below `LOW_STOCK_THRESHOLD` |
+
+Full OpenCart route mapping: [`docs/opencart-api-notes.md`](docs/opencart-api-notes.md).
+
+---
+
+## Real-time inventory sync (end-to-end)
+
+When an order is confirmed / moves to **`processing`**, the system:
+
+1. Detects the status change via `PATCH /orders/:id/status`.
+2. For each line item, deducts ordered quantity from current stock (variant-level when options exist).
+3. Writes updated stock back to OpenCart.
+4. Handles edge cases without blocking the HTTP response.
 
 ```mermaid
 sequenceDiagram
@@ -134,18 +314,17 @@ sequenceDiagram
   SyncService->>PG: PATCH job → completed
 ```
 
+### Sync edge cases
+
+| Scenario | Behavior |
+| -------- | -------- |
+| Stock would go negative | Fail **before** OpenCart write; job → `failed` with `INSUFFICIENT_STOCK`; order stays `processing` in OpenCart |
+| OpenCart API fails mid-sync | Exponential backoff (5 attempts); partial progress in job payload + audit logs |
+| Duplicate PATCH to `processing` | Unique `order_id` on `inventory_sync_jobs`; completed jobs not re-enqueued |
+| Worker crash mid-order | BullMQ redelivery; per-line-item state in payload skips already-deducted lines |
+| Variant line item | Deducts `option_value_id` stock, not base product quantity |
+
 **Idempotency:** Completed line items are stored in `inventory_sync_jobs.payload.completedLineItems`. Retries skip already-deducted lines. Jobs with status `completed` are not re-enqueued.
-
-**Status transitions** (enforced in API before OpenCart update):
-
-| From | Allowed to |
-| ---- | ---------- |
-| `pending` | `processing`, `cancelled` |
-| `processing` | `shipped`, `cancelled` |
-| `shipped` | `complete` |
-| `complete`, `cancelled` | _(terminal)_ |
-
-Only **`processing`** triggers inventory sync.
 
 ---
 
@@ -171,7 +350,7 @@ Quick reference after tracker is complete:
 ```bash
 cp .env.example .env   # set JWT_SECRET, API_PASSWORD_HASH, OPENCART_API_KEY
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-curl http://<PUBLIC_IP>:3002/health
+curl http://187.127.143.11:3002/health
 ```
 
 ---
@@ -306,7 +485,7 @@ Success: JSON includes `"api_token"`.
 
 ### Seed catalog data
 
-In OpenCart admin create **5 products** (≥1 with options/variants) and **3 orders** for integration testing. Entity IDs will be documented in `docs/SETUP.md`.
+In OpenCart admin create **5 products** (≥1 with options/variants) and **3 orders** for integration testing. Seeded IDs and smoke-test commands are documented in **[docs/SETUP.md](docs/SETUP.md)** (assignment §6.4).
 
 ### Verify custom extension
 
@@ -335,8 +514,6 @@ OpenCart 3 **native** API covers login and order read/update. Product CRUD, orde
 | `GET/PATCH /api/v1/orders/:id` | native `api/order/*` |
 | `GET/PATCH /api/v1/inventory*` | `api/unisouk/stock/*` |
 
-Full route catalog: [`docs/opencart-api-notes.md`](docs/opencart-api-notes.md).
-
 Rebuild extension after PHP changes:
 
 ```bash
@@ -360,6 +537,13 @@ yarn start:worker # BullMQ worker (separate terminal)
 
 ## Testing
 
+Assignment requires **unit tests for at least two core services**. This repo includes regression specs with side-effect assertions (not just `not.toThrow()`):
+
+| Service | Spec | What it proves |
+| ------- | ---- | -------------- |
+| `OrdersService` | `orders.service.spec.ts` | Enqueues sync when status → `processing`; does **not** enqueue for other transitions |
+| `InventorySyncService` | `inventory-sync.service.spec.ts` | Deducts stock with correct qty; **does not** call OpenCart when insufficient stock |
+
 ```bash
 yarn test              # unit tests
 yarn test:cov          # coverage
@@ -367,7 +551,46 @@ yarn test:e2e          # health + auth smoke tests
 yarn test:ci           # lint + unit tests with coverage (CI command)
 ```
 
-Postman collection: added in C-28.
+Targeted runs:
+
+```bash
+npx jest --testPathPattern="orders.service.spec.ts"
+npx jest --testPathPattern="inventory-sync.service.spec.ts"
+```
+
+---
+
+## Postman collection (§6.2)
+
+Import both files into Postman:
+
+- [`docs/unisouk-assignment.postman_collection.json`](docs/unisouk-assignment.postman_collection.json)
+- [`docs/unisouk-assignment.postman_environment.json`](docs/unisouk-assignment.postman_environment.json)
+
+Select the **unisouk-assignment** environment, then:
+
+1. Run **Auth → Login** — test script stores `{{token}}` automatically.
+2. Run **E2E → Order status → inventory decrement** — PATCH order to `processing`, wait, verify stock decreased.
+3. Run **Errors →** folder — 404 product not found, insufficient-stock sync failure.
+
+Environment variables: `{{base_url}}` (default `http://localhost:3000/api/v1`), `{{token}}`, `{{order_id}}`, `{{product_id}}`.
+
+---
+
+## Reviewer setup & seed data (§6.4)
+
+For admin URLs, credentials, API key steps, and the **5 seeded products + 3 seeded orders** table (with IDs and stock quantities), see **[docs/SETUP.md](docs/SETUP.md)**.
+
+Quick inventory sync smoke test (order ID 1):
+
+```bash
+# After login + OpenCart API key configured — full steps in SETUP.md
+curl -X PATCH "http://localhost:3000/api/v1/orders/1/status" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"status":"processing"}'
+docker compose logs -f worker
+```
 
 ---
 
@@ -382,6 +605,17 @@ Postman collection: added in C-28.
 | **OpenCart as source of truth** | No local product/order replica; Postgres only stores sync operational data. |
 | **Custom extension dependency** | Product list/CRUD and stock APIs require the UniSouk Docker image; plain OpenCart 3 images will not work for those modules. |
 | **Worker co-deployment** | Inventory sync requires the `worker` service (or `yarn start:worker`) running alongside `app`. |
+
+### Future improvements (given more time)
+
+| Area | Improvement |
+| ---- | ----------- |
+| Sync failure handling | Compensating transaction / saga to revert order status when sync fails after `processing` |
+| OpenCart bootstrap | Fully scripted seed (products + orders) via SQL or admin API on first boot |
+| Observability | Metrics dashboard for queue depth, sync job failure rate, OpenCart API latency |
+| Rate limiting | `@nestjs/throttler` on auth login; BullMQ concurrency tuning per OpenCart capacity |
+| Caching | Short-TTL cache for read-heavy product list when OpenCart latency becomes a bottleneck |
+| Webhooks | Optional OpenCart order webhook as alternative trigger to PATCH-only flow |
 
 ---
 
@@ -423,8 +657,9 @@ yarn migrate:status
 
 | Document | Purpose |
 | -------- | ------- |
+| [`docs/SETUP.md`](docs/SETUP.md) | Reviewer setup, seeded product/order IDs (§6.4) |
 | [`docs/opencart-api-notes.md`](docs/opencart-api-notes.md) | OpenCart version decision, routes, status IDs |
-| [`docs/SETUP.md`](docs/SETUP.md) | Seeded product/order IDs and reviewer setup |
+| [`docs/DEPLOYMENT_TRACKER.md`](docs/DEPLOYMENT_TRACKER.md) | Production VPS deployment checklist |
 | [`docs/UNISOUK_OPENCART_MANUAL_TESTING_PLAN.md`](docs/UNISOUK_OPENCART_MANUAL_TESTING_PLAN.md) | Manual QA checklist |
 | [`opencart-extension/`](opencart-extension/) | UniSouk PHP extension source |
 
